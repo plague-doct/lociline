@@ -160,14 +160,38 @@
   .seg button{font-family:inherit;font-size:13.5px;font-weight:600;padding:8px 14px;background:#fff;border:0;color:var(--human);cursor:pointer;}
   .seg button + button{border-left:1.5px solid var(--human);}
   .seg button[aria-pressed="true"]{background:var(--human);color:#fff;}
-  .jump-bar{position:sticky;top:62px;z-index:10;display:flex;gap:10px;flex-wrap:wrap;align-items:center;
-    background:rgba(239,243,236,.96);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:12px;
-    padding:10px 14px;margin:0 0 8px;}
-  .jump-bar b{font-size:13px;color:var(--text-secondary);font-weight:600;margin-right:2px;}
-  .jump-bar select{font-family:inherit;font-size:13.5px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;
-    background:#fff;color:inherit;max-width:100%;}
-  .card.flash{box-shadow:0 0 0 3px var(--human-light);transition:box-shadow .4s;}
-  [id^="pr-"], [id^="bk-"]{scroll-margin-top:180px;}
+  /* the prompts as modules: a book folds open to its scenes, a scene to its stops.
+     The mechanics of a course-module list, in Loci Line's own dress. */
+  .mod{border:1px solid var(--border);border-radius:16px;background:var(--surface);margin:0 0 22px;overflow:hidden;}
+  .mod > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:18px 22px;
+    background:var(--surface);position:relative;}
+  .mod > summary::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;
+    background:repeating-linear-gradient(180deg,var(--human) 0 10px,var(--peer) 10px 16px,var(--warm) 16px 24px);}
+  .mod[open] > summary{border-bottom:1px solid var(--border);}
+  .mod > summary::-webkit-details-marker, .row > summary::-webkit-details-marker{display:none;}
+  .mod > summary h2{font-family:'Fraunces',serif;font-weight:500;font-size:22px;margin:0;}
+  .mod > summary .count{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--text-secondary);}
+  .caret{width:0;height:0;border-left:6px solid var(--human);border-top:5px solid transparent;border-bottom:5px solid transparent;
+    transition:transform .15s;flex:none;}
+  details[open] > summary .caret{transform:rotate(90deg);}
+  .mod > summary:focus-visible, .row > summary:focus-visible{outline:2px solid var(--human);outline-offset:-2px;}
+  .row{border-top:1px solid var(--border);background:#fff;}
+  .row:first-of-type{border-top:0;}
+  .row > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:15px 22px 15px 28px;}
+  .row > summary:hover{background:#F7FAF6;}
+  .row > summary .ico{flex:none;color:var(--human);}
+  .row > summary .t{font-family:'Fraunces',serif;font-weight:500;font-size:16.5px;}
+  .row > summary .s{display:block;font-size:12.5px;color:var(--text-secondary);margin-top:1px;}
+  .row > summary .caret{margin-left:auto;}
+  .row[open] > summary{background:var(--human-light);}
+  .row .row-body{padding:4px 24px 18px 60px;background:#fff;border-top:1px solid var(--border);}
+  .row .row-body .meta{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--text-secondary);margin:14px 0 4px;}
+  .mod-tools{display:flex;gap:14px;justify-content:flex-end;margin:0 0 12px;}
+  .mod-tools button{font-family:inherit;font-size:13px;font-weight:600;background:none;border:0;color:var(--human);cursor:pointer;padding:0;}
+  .mod-tools button:hover{text-decoration:underline;}
+  @media (max-width:560px){ .row .row-body{padding:6px 14px 16px;} }
 
   /* the whole class, as one shape */
   .class-shape{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin:0 0 22px;}
@@ -445,6 +469,7 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
 --------------------------------------------------------------------------- */
 function promptKey(scene, stop){ return scene + '.' + stop; }
 
+const PROMPT_OPEN = new Set();
 function renderPrompts(){
   const box = $('prompt-list');
   if(!CATALOGUE || !CATALOGUE.books){
@@ -453,19 +478,20 @@ function renderPrompts(){
       'rooms and stops out as it starts, so this page never keeps a second copy of them.</div>';
     return;
   }
-  const jump = '<div class="jump-bar"><b>Jump to</b>' + CATALOGUE.books.map(b =>
-    '<select data-jump aria-label="' + esc(b.title) + '"><option value="">' + esc(b.title) + '</option>' +
-    '<option value="bk-' + esc(b.id) + '">The whole ' + (b.rooms.length > 1 ? esc(b.unit || 'book') : esc(b.piece || 'book')) + '</option>' +
-    b.rooms.map(r => '<option value="pr-' + esc(r.scene) + '">' + esc(r.label) + ' — ' + esc(r.title) + '</option>').join('') +
-    '</select>').join('') + '</div>';
-  box.innerHTML = jump + CATALOGUE.books.map(b => `
-    <div class="book-head" id="bk-${esc(b.id)}">
-      <h2 class="display">${esc(b.title)}</h2>
-      <span>${b.rooms.length} room${b.rooms.length === 1 ? '' : 's'} &middot; ${b.piece}</span>
-    </div>
+  const ownIn = r => r.stops.filter(st => PROMPTS[promptKey(r.scene, st.id)]).length;
+  const rowSub = r => { const n = ownIn(r);
+    return r.stops.length + ' stop' + (r.stops.length === 1 ? '' : 's') + (n ? ' · ' + n + ' of your own' : ''); };
+  const ICON = '<svg class="ico" width="18" height="20" viewBox="0 0 18 20" aria-hidden="true"><path d="M3 1.5h8l4 4V18.5H3z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M11 1.5v4h4M6 9h6M6 12h6M6 15h4" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
+  box.innerHTML = '<div class="mod-tools"><button type="button" data-all="open">Open everything</button><button type="button" data-all="close">Close everything</button></div>' +
+    CATALOGUE.books.map((b, bi) => `
+    <details class="mod" id="bk-${esc(b.id)}" ${PROMPT_OPEN.has('bk-' + b.id) || (!PROMPT_OPEN.size && bi === 0) ? 'open' : ''}>
+      <summary><span class="caret"></span><h2>${esc(b.title)}</h2>
+        <span class="count">${b.rooms.length} ${b.rooms.length === 1 ? esc(b.piece || 'room') : esc(b.piece || 'room') + 's'}</span></summary>
     ${b.rooms.map(r => `
-      <div class="card" id="pr-${esc(r.scene)}">
-        <h3>${esc(r.label)} &mdash; ${esc(r.title)}</h3>
+      <details class="row" id="pr-${esc(r.scene)}" ${PROMPT_OPEN.has('pr-' + r.scene) ? 'open' : ''}>
+        <summary>${ICON}<span><span class="t">${esc(r.label)} &mdash; ${esc(r.title)}</span>
+          <span class="s" data-sub="${esc(r.scene)}">${rowSub(r)}</span></span><span class="caret"></span></summary>
+        <div class="row-body">
         <p class="meta">${r.wings ? esc(r.wings.a) + ' &nbsp;/&nbsp; ' + esc(r.wings.b) : 'no fork'}
           ${r.paraphrase ? '&nbsp;&middot;&nbsp; retold, not quoted' : ''}</p>
         ${r.stops.map(st => {
@@ -484,16 +510,27 @@ function renderPrompts(){
             </div>
           </div>`;
         }).join('')}
-      </div>`).join('')}
-  `).join('');
+        </div>
+      </details>`).join('')}
+    </details>`).join('');
 
-  box.querySelectorAll('[data-jump]').forEach(sel => sel.onchange = () => {
-    const el = sel.value && document.getElementById(sel.value);
-    sel.value = '';
-    if(!el) return;
-    el.scrollIntoView({behavior:'smooth', block:'start'});
-    if(el.classList.contains('card')){ el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1400); }
+  // what is open stays open when the page redraws
+  box.querySelectorAll('details').forEach(d => d.addEventListener('toggle', () => {
+    if(d.open) PROMPT_OPEN.add(d.id); else PROMPT_OPEN.delete(d.id);
+  }));
+  box.querySelectorAll('[data-all]').forEach(btn => btn.onclick = () => {
+    const open = btn.dataset.all === 'open';
+    box.querySelectorAll('details').forEach(d => { d.open = open; });
   });
+  const refreshSub = k => {
+    const scene = k.slice(0, k.lastIndexOf('.'));
+    CATALOGUE.books.forEach(b => b.rooms.forEach(r => {
+      if(r.scene !== scene) return;
+      const el = box.querySelector('[data-sub="' + CSS.escape(scene) + '"]');
+      if(el) el.textContent = rowSub(r);
+    }));
+  };
+
   box.querySelectorAll('[data-save]').forEach(btn => btn.onclick = () => {
     const k = btn.dataset.save;
     const ta = box.querySelector('textarea[data-k="' + k + '"]');
@@ -508,6 +545,7 @@ function renderPrompts(){
     flag.textContent = v ? 'Saved for ' + CLASS : 'Back to the original';
     flag.classList.add('on');
     setTimeout(() => flag.classList.remove('on'), 1800);
+    refreshSub(k);
   });
   box.querySelectorAll('[data-reset]').forEach(btn => btn.onclick = () => {
     const k = btn.dataset.reset;
