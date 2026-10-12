@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loci Line — reading, thinking, growing</title>
+<meta name="description" content="A classroom tool for 9–13 year olds that turns reflection on a set text into a woven artifact — and shows exactly what the AI did and didn't do.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EFF3EC; --surface:#FBFAF6; --text-primary:#223026; --text-secondary:#5B6B5E;
+    --human:#4C7A5D; --human-light:#DCE8DE; --ai:#3B6EA8; --ai-light:#DCE6F0;
+    --peer:#8B5FA3; --peer-light:#EAE0EF; --warm:#E0A339; --border:#C9D3C5;
+    --terracotta:#B4574A; --parchment:#F6F0E2; --parchment-line:#E4D9C0;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--text-primary);
+    font-family:'Public Sans',sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .display{font-family:'Fraunces',serif;font-weight:500;}
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px;}
+  a{color:var(--human);}
+
+  /* ---------- nav ---------- */
+  header.top{position:sticky;top:0;z-index:20;background:rgba(239,243,236,.93);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .top-in{display:flex;align-items:center;gap:22px;padding:13px 0;}
+  .brand{font-family:'Fraunces',serif;font-size:19px;font-weight:600;text-decoration:none;
+    color:var(--text-primary);margin-right:auto;display:flex;align-items:center;gap:9px;}
+  .brand .mark{width:22px;height:22px;border-radius:5px;
+    background:repeating-linear-gradient(90deg,var(--human) 0 4px,var(--peer) 4px 7px,var(--warm) 7px 11px);}
+  .top-in nav{display:flex;gap:19px;}
+  .top-in nav a{font-size:14px;color:var(--text-secondary);text-decoration:none;}
+  .top-in nav a:hover{color:var(--human);}
+  .btn{display:inline-block;font-weight:600;font-size:14.5px;border-radius:10px;
+    padding:11px 20px;text-decoration:none;border:1.5px solid transparent;cursor:pointer;}
+  .btn-primary{background:var(--human);color:#fff;}
+  .btn-primary:hover{background:#3f684e;}
+  .btn-ghost{background:#fff;color:var(--text-primary);border-color:var(--border);}
+  .btn-ghost:hover{border-color:var(--human);color:var(--human);}
+  @media (max-width:760px){ .top-in nav{display:none;} }
+
+  /* ---------- hero ---------- */
+  .hero{padding:74px 0 60px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--human);margin:0 0 16px;}
+  .hero h1{font-size:clamp(40px,6.6vw,68px);line-height:1.05;margin:0 0 8px;letter-spacing:-.015em;}
+  /* the name is contested out loud, so the page just says how to say it */
+  .pronounce{font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--text-secondary);margin:0 0 22px;}
+  .pronounce b{color:var(--human);font-weight:500;letter-spacing:.05em;}
+  .subhead{font-size:clamp(21px,3vw,29px);line-height:1.25;margin:0 0 18px;max-width:18ch;
+    color:var(--text-primary);}
+  .hero p.lede{font-size:18.5px;color:var(--text-secondary);max-width:56ch;margin:0 0 15px;}
+  .hero p.lede:last-of-type{margin-bottom:30px;}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .hero-note{font-size:13px;color:var(--text-secondary);margin-top:16px;}
+
+  /* the living artifact: the five rooms of Act I from above, with a simulated
+     class walking them one after another and their routes piling up */
+  .weave{margin:38px 0 0;}
+  .weave canvas{display:block;width:100%;height:auto;border-radius:10px;}
+  .weave-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;
+    color:var(--text-secondary);margin:10px 0 0;}
+  .weave-cap b{color:var(--human);font-weight:500;}
+
+  /* ---------- sections ---------- */
+  section{padding:58px 0;border-top:1px solid var(--border);}
+  section h2{font-family:'Fraunces',serif;font-size:30px;font-weight:500;margin:0 0 12px;}
+  section .sub{font-size:16px;color:var(--text-secondary);max-width:60ch;margin:0 0 30px;}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  @media (max-width:760px){ .cols{grid-template-columns:1fr;} }
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 22px;}
+  .card h3{font-size:17px;margin:0 0 8px;font-weight:600;}
+  .card p{font-size:14.5px;color:var(--text-secondary);margin:0;}
+  .step-n{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.09em;
+    color:var(--human);margin-bottom:10px;text-transform:uppercase;}
+
+  /* the honest box */
+  .ledger{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);
+    border-radius:14px;overflow:hidden;background:var(--surface);}
+  @media (max-width:680px){ .ledger{grid-template-columns:1fr;} }
+  .ledger > div{padding:26px 24px;}
+  .ledger .does{background:var(--ai-light);}
+  .ledger .never{border-left:1px solid var(--border);}
+  @media (max-width:680px){ .ledger .never{border-left:none;border-top:1px solid var(--border);} }
+  .ledger h3{font-size:15px;margin:0 0 14px;font-weight:600;}
+  .ledger .does h3{color:var(--ai);}
+  .ledger .never h3{color:var(--terracotta);}
+  .ledger ul{margin:0;padding-left:18px;}
+  .ledger li{font-size:14.5px;margin-bottom:9px;color:var(--text-primary);}
+  .ledger li::marker{color:var(--border);}
+  .pull{font-family:'Fraunces',serif;font-size:21px;line-height:1.45;color:var(--text-primary);
+    border-left:3px solid var(--human);padding-left:20px;margin:30px 0 0;max-width:52ch;}
+
+  /* for teachers: the prototype notice, the demo rooms, and the door in */
+  .proto-note{background:#FBF1E4;border:1px solid #E7D3B4;border-radius:12px;padding:14px 18px;
+    font-size:14.5px;color:#6A5330;max-width:68ch;margin:0 0 22px;}
+  .proto-note b{color:#4A3A20;}
+  #teachers h3{font-family:'Fraunces',serif;font-weight:500;font-size:21px;margin:34px 0 6px;}
+  .demo-rooms{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0;}
+  .demo-rooms button{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.04em;
+    padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;
+    color:var(--text-primary);cursor:pointer;}
+  .demo-rooms button:hover{border-color:var(--human);color:var(--human);}
+  .door-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:26px 24px;max-width:540px;margin-top:22px;}
+  .door-card label{display:block;font-weight:600;font-size:14px;margin:0 0 6px;}
+  .door-card input{width:100%;font-family:inherit;font-size:16px;padding:11px 13px;
+    border:1.5px solid var(--border);border-radius:10px;background:#fff;color:inherit;}
+  .door-card input:focus{outline:2px solid var(--human);outline-offset:1px;border-color:var(--human);}
+  .door-card .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:15px;}
+  .door-card .hint{font-size:13px;color:var(--text-secondary);margin:8px 0 0;}
+  .swap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px;}
+  @media (max-width:640px){ .swap{grid-template-columns:1fr;} }
+  .swap div{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:#fff;}
+  .swap div.mine{border-color:var(--human);background:#FBFFFA;}
+  .swap .lbl{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:7px;}
+  .swap p{margin:0;font-size:15px;font-family:'Fraunces',serif;line-height:1.5;}
+
+  /* teachers */
+  .run{display:grid;grid-template-columns:auto 1fr;gap:0 22px;}
+  .run dt{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--human);
+    padding:14px 0 0;border-top:1px solid var(--border);white-space:nowrap;}
+  .run dd{margin:0;padding:14px 0 16px;border-top:1px solid var(--border);font-size:15px;}
+  .run dd b{display:block;margin-bottom:3px;}
+  .run dd span{color:var(--text-secondary);font-size:14px;}
+  @media (max-width:600px){ .run{grid-template-columns:1fr;} .run dt{border-top:none;padding-bottom:0;} .run dd{border-top:none;padding-top:4px;} }
+
+  /* texts */
+  .shelf{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  @media (max-width:760px){ .shelf{grid-template-columns:1fr;} }
+  .txt{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface);}
+  .txt .band{height:8px;}
+  .txt .body{padding:20px 20px 22px;}
+  .txt h3{font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin:0 0 4px;}
+  .txt .meta{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--text-secondary);margin:0 0 10px;}
+  .txt p{font-size:14px;color:var(--text-secondary);margin:0;}
+  .tag{display:inline-block;font-size:11px;font-weight:600;border-radius:20px;padding:3px 10px;margin-top:12px;}
+  .tag.live{background:var(--human-light);color:var(--human);}
+  .tag.soon{background:#fff;border:1px solid var(--border);color:var(--text-secondary);}
+
+  /* parents */
+  .safety{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;}
+  @media (max-width:680px){ .safety{grid-template-columns:1fr;} }
+  .safety div{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .safety h3{font-size:15px;margin:0 0 6px;font-weight:600;}
+  .safety p{font-size:14px;color:var(--text-secondary);margin:0;}
+
+  /* a teacher's own texts — the mock is illustrative, never a live field */
+  .prompt-mock{background:var(--parchment);border:1px dashed var(--parchment-line);
+    border-radius:13px;padding:18px 20px;}
+  .pm-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:#8A7A57;display:block;margin-bottom:8px;}
+  .pm-text{font-family:'Fraunces',serif;font-size:18px;line-height:1.5;margin:0;color:var(--text-primary);}
+  .pm-text em{font-style:italic;}
+  .not-yet{margin:26px 0 0;padding:14px 17px;background:#fff;border:1px solid var(--border);
+    border-radius:11px;font-size:13.5px;color:var(--text-secondary);}
+  .not-yet b{color:var(--terracotta);}
+
+  /* contact */
+  .contact-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:start;}
+  @media (max-width:760px){ .contact-grid{grid-template-columns:1fr;} }
+  form label{display:block;font-size:13px;font-weight:600;margin:0 0 5px;}
+  form input, form textarea, form select{width:100%;font-family:inherit;font-size:14.5px;
+    padding:11px 13px;border:1px solid var(--border);border-radius:9px;background:#fff;margin-bottom:14px;}
+  form textarea{min-height:110px;resize:vertical;}
+  form input:focus, form textarea:focus, form select:focus{outline:2px solid var(--human);outline-offset:1px;}
+  .form-note{font-size:12.5px;color:var(--text-secondary);margin-top:10px;}
+  .status{font-size:13.5px;margin-top:12px;padding:11px 14px;border-radius:9px;display:none;}
+  .status.on{display:block;background:var(--human-light);color:var(--human);}
+
+  /* blog */
+  .posts{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media (max-width:860px){ .posts{grid-template-columns:1fr;} }
+  .post{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:20px 22px 22px;display:flex;flex-direction:column;}
+  .post .when{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--human);margin:0 0 9px;}
+  .post h3{font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin:0 0 8px;line-height:1.25;}
+  .post p{font-size:14.5px;color:var(--text-secondary);margin:0 0 14px;}
+  .post .more{font-size:13.5px;font-weight:600;text-decoration:none;margin-top:auto;}
+  .post.blank{border-style:dashed;background:transparent;}
+  .post.blank h3, .post.blank p{color:var(--text-secondary);opacity:.65;}
+  .posts-note{font-size:13px;color:var(--text-secondary);margin:18px 0 0;}
+
+  footer{border-top:1px solid var(--border);padding:34px 0 56px;font-size:13.5px;color:var(--text-secondary);}
+  footer .f-in{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+  footer a{color:var(--text-secondary);}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#top"><span class="mark" aria-hidden="true"></span>Loci Line</a>
+    <nav>
+      <a href="#about">About</a>
+      <a href="#teachers">For teachers</a>
+      <a href="#ai">The AI</a>
+      <a href="#parents">For parents</a>
+      <a href="blog.html">Blog</a>
+    </nav>
+    <a class="btn btn-primary" href="app.html">Open the tool</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <div class="wrap hero">
+    <h1 class="display">Loci Line</h1>
+    <p class="pronounce"><b>Loh-sy lie-n</b></p>
+    <p class="subhead display">Reading, with a thinking partner</p>
+    <p class="lede">Loci Line is a classroom tool for students and teachers to engage with in class
+      texts, and learn how to use AI to represent their own voice.</p>
+    <p class="lede">Students will walk through and experience a room based on the last chapter the
+      class read, stopping to interact with statues and reflect on themes and opinions they have developed on
+      the text. At the end using the themes they assigned the AI tool in the background will weave a map
+      of all the student opinions, ready to strike up in class discussion or as a piece of art for the
+      classroom wall.</p>
+    <p class="lede">For teachers, you can modify the existing texts&rsquo; prompts, or in future be able to add
+      your own, dividing them up as you see fit. This whole experience should take 10-15 minutes and is
+      suggested to be an introduction or reflection activity for your class.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="app.html">Start as a student</a>
+      <a class="btn btn-ghost" href="#teachers" id="teacher-door">I'm a teacher</a>
+    </div>
+    <p class="hero-note">No account needed to look around. No open chat with an AI, anywhere in it.</p>
+    <div class="weave" id="weave" aria-hidden="true">
+      <canvas id="weave-c"></canvas>
+      <p class="weave-cap">A class reading a book, as a map &mdash; <b>simulated</b>.</p>
+    </div>
+  </div>
+
+
+
+
+
+  <!-- ---------- about ---------- -->
+  <section id="about">
+    <div class="wrap">
+      <h2 class="display">About</h2>
+      <p class="sub">Loci Line is a capstone project by Campbell Smith, using Claude code as the engine
+        to create and run the code. Over the 12 week course this prototype has been created with the goal
+        of creating a fun and engaging literacy tool for students year 5 to year 8, and beyond.</p>
+      <p class="sub">The main aim for the app outside of its literacy tool use is to start conversations
+        about AI literacy, and let students safely engage with Large Language Model AI without losing
+        their own voice.</p>
+    </div>
+  </section>
+
+  <!-- ---------- for teachers ---------- -->
+  <section id="teachers">
+    <div class="wrap">
+      <h2 class="display">For teachers</h2>
+      <p class="proto-note"><b>This is a prototype.</b> Loci Line is a Media Design capstone project at
+        Te Herenga Waka&nbsp;/ Victoria University of Wellington, not a finished product. It isn't connected
+        to any school, and there are no accounts: anything you enter stays in the browser you entered it
+        in. Look around as much as you like, but please don't use it to keep a real class's work yet.</p>
+
+      <h3>Try the teacher side</h3>
+      <p class="sub">Pick one of these made-up rooms to open the dashboard with a sample class already in
+        it, or type your own below.</p>
+      <div class="demo-rooms" id="demo-rooms">
+        <button type="button">Practice R1</button>
+        <button type="button">Practice R2</button>
+        <button type="button">Practice R3</button>
+        <button type="button">Practice R4</button>
+        <button type="button">Practice R5</button>
+      </div>
+
+      <h3>Add a prompt</h3>
+      <p class="sub">Every stop in every room asks one question. You can write over any of them, and your
+        class walks into yours instead of ours &mdash; the room, the fork and the record all stay exactly
+        as they are.</p>
+
+      <div class="swap" aria-hidden="true">
+        <div>
+          <span class="lbl">The question as written</span>
+          <p>Tybalt hates the word &ldquo;peace&rdquo;. What do you think he&rsquo;d lose if the fighting
+            stopped?</p>
+        </div>
+        <div class="mine">
+          <span class="lbl">What you asked instead</span>
+          <p>We talked about this on Tuesday. Who in the play has the most to lose if everyone calms
+            down?</p>
+        </div>
+      </div>
+
+      <div class="door-card">
+        <label for="cls">Your classroom number</label>
+        <input type="text" id="cls" placeholder="e.g. 9TB, Room 12, Kōwhai" autocomplete="off">
+        <div class="row">
+          <a class="btn btn-primary" href="teacher.html" id="go-teacher">Open the teacher side</a>
+          <span class="hint" id="cls-note">It labels your prompts and the walks that come back.</span>
+        </div>
+        <p class="hint">On the teacher side you also read what your class wrote, word for word, and see
+          the artifact each walk made. Nothing there is sent anywhere: prompts and responses stay in the
+          browser they were made in.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- the AI ---------- -->
+  <section id="ai">
+    <div class="wrap">
+      <h2 class="display">What the AI actually does</h2>
+      <p class="sub">This is the part most tools are vague about, so here it is as a list. Everything on
+        the left is a choice the student made from a fixed set of options. Nothing on the right is ever
+        opened.</p>
+      <div class="ledger">
+        <div class="does">
+          <h3>It reads</h3>
+          <ul>
+            <li>Which way you turned at each fork</li>
+            <li>Which moments you stopped at</li>
+            <li>How long you stayed at each one</li>
+            <li>Which themes you tapped, from five</li>
+            <li>Whether you marked a thought as coming from reading, from class, or from elsewhere</li>
+          </ul>
+        </div>
+        <div class="never">
+          <h3>It never reads</h3>
+          <ul>
+            <li>A single sentence a student writes</li>
+            <li>What they meant by any of it</li>
+            <li>Anything typed into the "where did this come from" box</li>
+          </ul>
+          <p style="font-size:14px;color:var(--text-secondary);margin:16px 0 0;">Student writing is stored,
+            shown back word for word, and printed under the artifact for the class to read aloud. It is
+            never summarised, scored, or sent to a model.</p>
+        </div>
+      </div>
+      <p class="pull display">A picture generated from a child's sentences is a machine deciding what those
+        sentences meant. A picture generated from their footsteps is a record of a choice they actually
+        made — and one they can argue with in class.</p>
+    </div>
+  </section>
+
+
+  <!-- ---------- parents ---------- -->
+  <section id="parents">
+    <div class="wrap">
+      <h2 class="display">For parents</h2>
+      <p class="sub">The short version: your child types into a box that no AI ever opens, and there is
+        nobody for them to talk to inside this software.</p>
+      <div class="safety">
+        <div>
+          <h3>No open chat</h3>
+          <p>There is no conversation with an AI anywhere in the experience. Every input is a button, a
+            tag, or a writing box that stays local to the lesson.</p>
+        </div>
+        <div>
+          <h3>Nothing trains anything</h3>
+          <p>Student writing is not sent to a model, not used for training, and not published. It is shown
+            back to them and to their teacher, word for word.</p>
+        </div>
+        <div>
+          <h3>Nothing is marked</h3>
+          <p>The reading question isn't scored or saved. There are no points, streaks, leaderboards or
+            rewards — deliberately, so it doesn't behave like a game that wants them back.</p>
+        </div>
+        <div>
+          <h3>You can see all of it</h3>
+          <p>The end screen states exactly which pieces of data made the picture. Ask your child to show
+            you theirs; it's designed to be explainable by a ten-year-old.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- contact ---------- -->
+  <section id="contact">
+    <div class="wrap">
+      <h2 class="display">Tell me what you'd need</h2>
+      <div class="contact-grid">
+        <div>
+          <p class="sub" style="margin-bottom:22px;">This is a Media Design capstone at Victoria University
+            of Wellington, and it is still being built. If you teach this age group, or you're a parent with
+            a question about the AI side, I'd rather hear it now than after it ships.</p>
+          <form id="contact-form">
+            <label for="cf-name">Your name</label>
+            <input id="cf-name" name="name" type="text" autocomplete="name" required>
+            <label for="cf-role">You are</label>
+            <select id="cf-role" name="role">
+              <option>A teacher</option>
+              <option>A parent</option>
+              <option>A student</option>
+              <option>Someone else</option>
+            </select>
+            <label for="cf-msg">What would you want from this?</label>
+            <textarea id="cf-msg" name="message" required></textarea>
+            <button class="btn btn-primary" type="submit">Send it</button>
+            <p class="status" id="cf-status"></p>
+            <p class="form-note">Nothing here is connected to a server yet — this form is a placeholder
+              while the site is in build.</p>
+          </form>
+        </div>
+        <div class="card">
+          <h3>Where it's up to</h3>
+          <p>All three texts walk: Romeo and Juliet end to end, and the first chapters of Pride and
+            Prejudice and Lord of the Flies as single rooms. The practice wood that teaches the controls
+            is finished, and the teacher's side &mdash; writing your own prompts, reading what a class
+            wrote, seeing their artifacts &mdash; is working. Student logins and a class roll are next.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap f-in">
+    <span>Loci Line — Media Design capstone, Te Herenga Waka&nbsp;/ Victoria University of Wellington.</span>
+    <!-- the portfolio URL goes in the href below, and the em can come out with it -->
+    <span><a href="#" id="portfolio-link">Campbell Smith &mdash; portfolio</a>
+      <em id="portfolio-note">(link to come)</em></span>
+    <span><a href="app.html">Open the tool</a></span>
+  </div>
+</footer>
+
+<script>
+  /* --------------------------------------------------------------------------
+     The hero: the artifact as a subway map. Every room of a book is one "eye" —
+     the line splits at the fork, runs a stop or two down either branch, rejoins
+     at the crossing and leaves by the door. A class is a handful of coloured
+     lines running the same track and parting wherever two readers chose
+     differently. This is the "shape of the choice" view from the tool, drawn
+     once and scrolled slowly across the page. Simulated readers, no real data,
+     and — as in the tool — nothing but routes and stops in it.
+  -------------------------------------------------------------------------- */
+  (function(){
+    const canvas = document.getElementById('weave-c');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const LINES = ['#4C7A5D','#8B5FA3','#3B6EA8','#C4743C','#B4574A'];
+    const FX = {start:0.0, fork:0.16, a1:0.33, a2:0.51, b1:0.33, b2:0.51, merge:0.67, c:0.83, exit:1.0};
+    const EDGES = [['start','fork'],['fork','a1'],['a1','a2'],['a2','merge'],
+                   ['fork','b1'],['b1','b2'],['b2','merge'],['merge','c'],['c','exit']];
+    const ROUTE = {a:['start','fork','a1','a2','merge','c','exit'], b:['start','fork','b1','b2','merge','c','exit']};
+    const STOPS = ['a1','a2','b1','b2','c'];
+
+    let seed = 20260917;
+    const rnd = () => (seed = (seed*1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+
+    /* ---- layout ---- */
+    let W = 0, H = 150, ROOM_W = 250, rooms = 6, tileW = 0, yc = 0, spread = 0;
+    function layout(){
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = canvas.clientWidth || 900;
+      H = W < 600 ? 120 : 150;
+      ROOM_W = W < 600 ? 200 : 250;
+      rooms = Math.max(6, Math.ceil(W / ROOM_W) + 2);   // a tile always wider than the frame
+      tileW = rooms * ROOM_W;
+      yc = H/2; spread = H * 0.27;
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    const lane = i => i === 0 ? 0 : Math.ceil(i/2) * 5 * (i % 2 ? -1 : 1);
+    const XY = (ri, id, off) => [ri*ROOM_W + FX[id]*ROOM_W,
+      (id==='a1'||id==='a2') ? yc - spread + off : (id==='b1'||id==='b2') ? yc + spread + off : yc + off];
+    function curve(x1,y1, x2,y2){
+      const mx = (x1+x2)/2;
+      ctx.moveTo(x1,y1); ctx.bezierCurveTo(mx,y1, mx,y2, x2,y2);
+    }
+
+    /* ---- the class: one line per reader, one choice per room, a few stops each ---- */
+    let readers = [];
+    function generate(){
+      seed = 20260917;
+      readers = LINES.map((col, i) => ({
+        col, off: lane(i),
+        rooms: Array.from({length:rooms}, () => {
+          const side = rnd() < 0.5 ? 'a' : 'b';
+          const stops = {};
+          [side+'1', side+'2', 'c'].forEach(id => { if(rnd() < 0.8) stops[id] = true; });
+          return {side, stops};
+        })
+      }));
+    }
+
+    /* ---- one tile of the map, drawn at x offset ox ---- */
+    function drawTile(ox){
+      ctx.save(); ctx.translate(ox, 0);
+      // the track everyone shares, including the branches nobody took
+      ctx.strokeStyle = '#e1e5dc'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for(let ri=0; ri<rooms; ri++){
+        EDGES.forEach(([a,b]) => { const [x1,y1] = XY(ri,a,0), [x2,y2] = XY(ri,b,0); curve(x1,y1,x2,y2); });
+      }
+      ctx.stroke();
+      // the lines
+      readers.forEach(r => {
+        ctx.strokeStyle = r.col; ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath();
+        for(let ri=0; ri<rooms; ri++){
+          const path = ROUTE[r.rooms[ri].side];
+          for(let k=0;k<path.length-1;k++){
+            const [x1,y1] = XY(ri,path[k],r.off), [x2,y2] = XY(ri,path[k+1],r.off);
+            curve(x1,y1,x2,y2);
+          }
+        }
+        ctx.stroke();
+      });
+      // stations: white discs with a dark ring, and a tick in each line that stopped there
+      for(let ri=0; ri<rooms; ri++){
+        STOPS.forEach(id => {
+          const [x,y] = XY(ri,id,0);
+          ctx.fillStyle = '#fff'; ctx.strokeStyle = '#3c463f'; ctx.lineWidth = 2.2;
+          ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+          readers.forEach(r => {
+            if(!r.rooms[ri].stops[id]) return;
+            ctx.fillStyle = r.col;
+            ctx.beginPath(); ctx.arc(x, y + r.off*0.55, 2.2, 0, Math.PI*2); ctx.fill();
+          });
+        });
+        // the fork and the crossing are interchanges
+        ['fork','merge'].forEach(id => {
+          const [x,y] = XY(ri,id,0);
+          ctx.fillStyle = '#fff'; ctx.strokeStyle = '#3c463f'; ctx.lineWidth = 2.2;
+          ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        });
+      }
+      ctx.restore();
+    }
+    function frame(scroll){
+      ctx.clearRect(0, 0, W, H);
+      const ox = -(scroll % tileW);
+      drawTile(ox); drawTile(ox + tileW);
+    }
+
+    layout(); generate();
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let scroll = 0, last = 0, visible = true;
+    if(!still){
+      if('IntersectionObserver' in window)
+        new IntersectionObserver(es => { visible = es[0].isIntersecting; }, {threshold:0.05}).observe(canvas);
+      const loop = ts => {
+        const dt = Math.min(0.05, (ts - last)/1000 || 0); last = ts;
+        if(visible && !document.hidden){ scroll += dt * 26; frame(scroll); }
+        requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    } else frame(0);
+    addEventListener('resize', () => { layout(); generate(); frame(scroll); });
+  })();
+
+  /* The teacher's door. Folded away until it is asked for, because the front page
+     is written for the person deciding whether to try this at all, not for the
+     one already running it in a room. */
+  (function(){
+    const sec = document.getElementById('teachers');
+    const btn = document.getElementById('teacher-door');
+    const cls = document.getElementById('cls');
+    const go  = document.getElementById('go-teacher');
+    const note = document.getElementById('cls-note');
+    if(!sec || !btn) return;
+
+    const KEY = 'lociline:classroom';
+    const known = (() => { try{ return localStorage.getItem(KEY) || ''; }catch(e){ return ''; } })();
+    if(known){ cls.value = known; note.textContent = 'Last time you opened ' + known + '.'; }
+
+    const open = () => {
+      requestAnimationFrame(() => {
+        sec.scrollIntoView({behavior:'smooth', block:'start'});
+        if(!cls.value) cls.focus({preventScroll:true});
+      });
+    };
+    btn.addEventListener('click', e => { e.preventDefault(); open(); });
+    if(location.hash === '#add-a-prompt') open();   // old links still land here
+
+    // a made-up room opens the teacher side straight away, on its sample class
+    document.querySelectorAll('#demo-rooms button').forEach(b => b.addEventListener('click', () => {
+      cls.value = b.textContent.trim();
+      try{ localStorage.setItem(KEY, cls.value); }catch(e){}
+      location.href = 'teacher.html';
+    }));
+
+    // the code goes with them, so the teacher side opens on the right class
+    const carry = () => { try{ localStorage.setItem(KEY, cls.value.trim()); }catch(e){} };
+    go.addEventListener('click', carry);
+    cls.addEventListener('keydown', e => { if(e.key === 'Enter'){ carry(); location.href = 'teacher.html'; } });
+  })();
+
+  /* the form has nowhere to go yet, so it says so rather than pretending */
+  document.getElementById('contact-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    const s = document.getElementById('cf-status');
+    s.textContent = 'Thanks — but nothing was sent. This form still needs wiring up to a mailbox.';
+    s.classList.add('on');
+  });
+</script>
+</body>
+</html>

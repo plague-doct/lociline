@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loci Line — Blog</title>
+<meta name="description" content="Notes from the build of Loci Line, as it goes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EFF3EC; --surface:#FBFAF6; --text-primary:#223026; --text-secondary:#5B6B5E;
+    --human:#4C7A5D; --human-light:#DCE8DE; --ai:#3B6EA8; --ai-light:#DCE6F0;
+    --peer:#8B5FA3; --peer-light:#EAE0EF; --warm:#E0A339; --border:#C9D3C5;
+    --terracotta:#B4574A; --parchment:#F6F0E2; --parchment-line:#E4D9C0;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--text-primary);
+    font-family:'Public Sans',sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .display{font-family:'Fraunces',serif;font-weight:500;}
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px;}
+  a{color:var(--human);}
+
+  /* ---------- nav ---------- */
+  header.top{position:sticky;top:0;z-index:20;background:rgba(239,243,236,.93);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .top-in{display:flex;align-items:center;gap:22px;padding:13px 0;}
+  .brand{font-family:'Fraunces',serif;font-size:19px;font-weight:600;text-decoration:none;
+    color:var(--text-primary);margin-right:auto;display:flex;align-items:center;gap:9px;}
+  .brand .mark{width:22px;height:22px;border-radius:5px;
+    background:repeating-linear-gradient(90deg,var(--human) 0 4px,var(--peer) 4px 7px,var(--warm) 7px 11px);}
+  .top-in nav{display:flex;gap:19px;}
+  .top-in nav a{font-size:14px;color:var(--text-secondary);text-decoration:none;}
+  .top-in nav a:hover{color:var(--human);}
+  .btn{display:inline-block;font-weight:600;font-size:14.5px;border-radius:10px;
+    padding:11px 20px;text-decoration:none;border:1.5px solid transparent;cursor:pointer;}
+  .btn-primary{background:var(--human);color:#fff;}
+  .btn-primary:hover{background:#3f684e;}
+  .btn-ghost{background:#fff;color:var(--text-primary);border-color:var(--border);}
+  .btn-ghost:hover{border-color:var(--human);color:var(--human);}
+  @media (max-width:760px){ .top-in nav{display:none;} }
+
+  /* ---------- hero ---------- */
+  .hero{padding:74px 0 60px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--human);margin:0 0 16px;}
+  .hero h1{font-size:clamp(40px,6.6vw,68px);line-height:1.05;margin:0 0 8px;letter-spacing:-.015em;}
+  /* the name is contested out loud, so the page just says how to say it */
+  .pronounce{font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--text-secondary);margin:0 0 22px;}
+  .pronounce b{color:var(--human);font-weight:500;letter-spacing:.05em;}
+  .subhead{font-size:clamp(21px,3vw,29px);line-height:1.25;margin:0 0 18px;max-width:18ch;
+    color:var(--text-primary);}
+  .hero p.lede{font-size:18.5px;color:var(--text-secondary);max-width:56ch;margin:0 0 15px;}
+  .hero p.lede:last-of-type{margin-bottom:30px;}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+  .hero-note{font-size:13px;color:var(--text-secondary);margin-top:16px;}
+
+  /* the living artifact: the five rooms of Act I from above, with a simulated
+     class walking them one after another and their routes piling up */
+  .weave{margin:38px 0 0;}
+  .weave canvas{display:block;width:100%;height:auto;border-radius:10px;}
+  .weave-cap{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;
+    color:var(--text-secondary);margin:10px 0 0;}
+  .weave-cap b{color:var(--human);font-weight:500;}
+
+  /* ---------- sections ---------- */
+  section{padding:58px 0;border-top:1px solid var(--border);}
+  section h2{font-family:'Fraunces',serif;font-size:30px;font-weight:500;margin:0 0 12px;}
+  section .sub{font-size:16px;color:var(--text-secondary);max-width:60ch;margin:0 0 30px;}
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  @media (max-width:760px){ .cols{grid-template-columns:1fr;} }
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 22px;}
+  .card h3{font-size:17px;margin:0 0 8px;font-weight:600;}
+  .card p{font-size:14.5px;color:var(--text-secondary);margin:0;}
+  .step-n{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.09em;
+    color:var(--human);margin-bottom:10px;text-transform:uppercase;}
+
+  /* the honest box */
+  .ledger{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);
+    border-radius:14px;overflow:hidden;background:var(--surface);}
+  @media (max-width:680px){ .ledger{grid-template-columns:1fr;} }
+  .ledger > div{padding:26px 24px;}
+  .ledger .does{background:var(--ai-light);}
+  .ledger .never{border-left:1px solid var(--border);}
+  @media (max-width:680px){ .ledger .never{border-left:none;border-top:1px solid var(--border);} }
+  .ledger h3{font-size:15px;margin:0 0 14px;font-weight:600;}
+  .ledger .does h3{color:var(--ai);}
+  .ledger .never h3{color:var(--terracotta);}
+  .ledger ul{margin:0;padding-left:18px;}
+  .ledger li{font-size:14.5px;margin-bottom:9px;color:var(--text-primary);}
+  .ledger li::marker{color:var(--border);}
+  .pull{font-family:'Fraunces',serif;font-size:21px;line-height:1.45;color:var(--text-primary);
+    border-left:3px solid var(--human);padding-left:20px;margin:30px 0 0;max-width:52ch;}
+
+  /* the teacher's door: folded away until "I'm a teacher" is pressed */
+  #add-a-prompt{display:none;}
+  #add-a-prompt.open{display:block;}
+  .door-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:26px 24px;max-width:540px;margin-top:22px;}
+  .door-card label{display:block;font-weight:600;font-size:14px;margin:0 0 6px;}
+  .door-card input{width:100%;font-family:inherit;font-size:16px;padding:11px 13px;
+    border:1.5px solid var(--border);border-radius:10px;background:#fff;color:inherit;}
+  .door-card input:focus{outline:2px solid var(--human);outline-offset:1px;border-color:var(--human);}
+  .door-card .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:15px;}
+  .door-card .hint{font-size:13px;color:var(--text-secondary);margin:8px 0 0;}
+  .swap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:24px;}
+  @media (max-width:640px){ .swap{grid-template-columns:1fr;} }
+  .swap div{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:#fff;}
+  .swap div.mine{border-color:var(--human);background:#FBFFFA;}
+  .swap .lbl{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:7px;}
+  .swap p{margin:0;font-size:15px;font-family:'Fraunces',serif;line-height:1.5;}
+
+  /* teachers */
+  .run{display:grid;grid-template-columns:auto 1fr;gap:0 22px;}
+  .run dt{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--human);
+    padding:14px 0 0;border-top:1px solid var(--border);white-space:nowrap;}
+  .run dd{margin:0;padding:14px 0 16px;border-top:1px solid var(--border);font-size:15px;}
+  .run dd b{display:block;margin-bottom:3px;}
+  .run dd span{color:var(--text-secondary);font-size:14px;}
+  @media (max-width:600px){ .run{grid-template-columns:1fr;} .run dt{border-top:none;padding-bottom:0;} .run dd{border-top:none;padding-top:4px;} }
+
+  /* texts */
+  .shelf{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  @media (max-width:760px){ .shelf{grid-template-columns:1fr;} }
+  .txt{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface);}
+  .txt .band{height:8px;}
+  .txt .body{padding:20px 20px 22px;}
+  .txt h3{font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin:0 0 4px;}
+  .txt .meta{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--text-secondary);margin:0 0 10px;}
+  .txt p{font-size:14px;color:var(--text-secondary);margin:0;}
+  .tag{display:inline-block;font-size:11px;font-weight:600;border-radius:20px;padding:3px 10px;margin-top:12px;}
+  .tag.live{background:var(--human-light);color:var(--human);}
+  .tag.soon{background:#fff;border:1px solid var(--border);color:var(--text-secondary);}
+
+  /* parents */
+  .safety{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;}
+  @media (max-width:680px){ .safety{grid-template-columns:1fr;} }
+  .safety div{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .safety h3{font-size:15px;margin:0 0 6px;font-weight:600;}
+  .safety p{font-size:14px;color:var(--text-secondary);margin:0;}
+
+  /* a teacher's own texts — the mock is illustrative, never a live field */
+  .prompt-mock{background:var(--parchment);border:1px dashed var(--parchment-line);
+    border-radius:13px;padding:18px 20px;}
+  .pm-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:#8A7A57;display:block;margin-bottom:8px;}
+  .pm-text{font-family:'Fraunces',serif;font-size:18px;line-height:1.5;margin:0;color:var(--text-primary);}
+  .pm-text em{font-style:italic;}
+  .not-yet{margin:26px 0 0;padding:14px 17px;background:#fff;border:1px solid var(--border);
+    border-radius:11px;font-size:13.5px;color:var(--text-secondary);}
+  .not-yet b{color:var(--terracotta);}
+
+  /* contact */
+  .contact-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:start;}
+  @media (max-width:760px){ .contact-grid{grid-template-columns:1fr;} }
+  form label{display:block;font-size:13px;font-weight:600;margin:0 0 5px;}
+  form input, form textarea, form select{width:100%;font-family:inherit;font-size:14.5px;
+    padding:11px 13px;border:1px solid var(--border);border-radius:9px;background:#fff;margin-bottom:14px;}
+  form textarea{min-height:110px;resize:vertical;}
+  form input:focus, form textarea:focus, form select:focus{outline:2px solid var(--human);outline-offset:1px;}
+  .form-note{font-size:12.5px;color:var(--text-secondary);margin-top:10px;}
+  .status{font-size:13.5px;margin-top:12px;padding:11px 14px;border-radius:9px;display:none;}
+  .status.on{display:block;background:var(--human-light);color:var(--human);}
+
+  /* blog */
+  .posts{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media (max-width:860px){ .posts{grid-template-columns:1fr;} }
+  .post{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:20px 22px 22px;display:flex;flex-direction:column;}
+  .post .when{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--human);margin:0 0 9px;}
+  .post h3{font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin:0 0 8px;line-height:1.25;}
+  .post p{font-size:14.5px;color:var(--text-secondary);margin:0 0 14px;}
+  .post .more{font-size:13.5px;font-weight:600;text-decoration:none;margin-top:auto;}
+  .post.blank{border-style:dashed;background:transparent;}
+  .post.blank h3, .post.blank p{color:var(--text-secondary);opacity:.65;}
+  .posts-note{font-size:13px;color:var(--text-secondary);margin:18px 0 0;}
+
+  footer{border-top:1px solid var(--border);padding:34px 0 56px;font-size:13.5px;color:var(--text-secondary);}
+  footer .f-in{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+  footer a{color:var(--text-secondary);}
+  /* the blog stands on its own page, so it opens the page rather than closing a section */
+  #blog{border-top:0;padding-top:48px;min-height:60vh;}
+  .top-in nav a[aria-current="page"]{color:var(--text-primary);font-weight:600;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>Loci Line</a>
+    <nav>
+      <a href="index.html#about">About</a>
+      <a href="index.html#teachers">For teachers</a>
+      <a href="index.html#ai">The AI</a>
+      <a href="index.html#parents">For parents</a>
+      <a href="blog.html" aria-current="page">Blog</a>
+    </nav>
+    <a class="btn btn-primary" href="app.html">Open the tool</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ---------- blog ----------
+       The posts come from the POSTS array at the top of the script, so adding one
+       is a single entry rather than a lump of markup. Anything left blank draws a
+       dashed card, which is a slot waiting for a post rather than a claim that
+       there is one. -->
+  <section id="blog">
+    <div class="wrap">
+      <h2 class="display">Blog</h2>
+      <p class="sub">Notes from the build, as it goes.</p>
+      <div class="posts" id="posts"></div>
+      <p class="posts-note" id="posts-note"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap f-in">
+    <span>Loci Line — Media Design capstone, Te Herenga Waka&nbsp;/ Victoria University of Wellington.</span>
+    <!-- the portfolio URL goes in the href below, and the em can come out with it -->
+    <span><a href="#" id="portfolio-link">Campbell Smith &mdash; portfolio</a>
+      <em id="portfolio-note">(link to come)</em></span>
+    <span><a href="app.html">Open the tool</a></span>
+  </div>
+</footer>
+
+<script>
+  /* --------------------------------------------------------------------------
+     The blog. One entry per post, newest first. A post needs a date, a title and
+     a line or two; `href` is where it goes when there is somewhere to go. An
+     entry with no title draws an empty slot instead, so the row keeps its shape
+     while the writing is still to come.
+  -------------------------------------------------------------------------- */
+  const POSTS = [
+    {when:'', title:'', blurb:'', href:''},
+    {when:'', title:'', blurb:'', href:''},
+    {when:'', title:'', blurb:'', href:''},
+  ];
+
+  (function(){
+    const box = document.getElementById('posts');
+    const note = document.getElementById('posts-note');
+    if(!box) return;
+    const written = POSTS.filter(p => p.title && p.title.trim());
+    box.innerHTML = POSTS.map(p => p.title && p.title.trim() ? `
+      <article class="post">
+        ${p.when ? '<p class="when">' + p.when + '</p>' : ''}
+        <h3>${p.title}</h3>
+        <p>${p.blurb || ''}</p>
+        ${p.href ? '<a class="more" href="' + p.href + '">Read it &rarr;</a>' : ''}
+      </article>` : `
+      <article class="post blank">
+        <p class="when">next post</p>
+        <h3>&mdash;</h3>
+        <p>An empty slot, waiting for a write-up.</p>
+      </article>`).join('');
+    note.textContent = written.length
+      ? ''
+      : 'No posts yet. They go in the POSTS list at the top of this page\u2019s script.';
+  })();
+
+</script>
+</body>
+</html>

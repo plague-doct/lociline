@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loci Line — the teacher's side</title>
+<meta name="description" content="Set your own question at any stop, and read what your class wrote back. Nothing here leaves the device.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EFF3EC; --surface:#FBFAF6; --text-primary:#223026; --text-secondary:#5B6B5E;
+    --human:#4C7A5D; --human-light:#DCE8DE; --ai:#3B6EA8; --ai-light:#DCE6F0;
+    --peer:#8B5FA3; --peer-light:#EAE0EF; --warm:#E0A339; --border:#C9D3C5;
+    --terracotta:#B4574A; --parchment:#F6F0E2; --parchment-line:#E4D9C0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text-primary);
+    font-family:'Public Sans',sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .display{font-family:'Fraunces',serif;font-weight:500;}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px;}
+  a{color:var(--human);}
+
+  header.top{position:sticky;top:0;z-index:20;background:rgba(239,243,236,.93);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .top-in{display:flex;align-items:center;gap:16px;padding:13px 0;flex-wrap:wrap;}
+  .brand{font-family:'Fraunces',serif;font-size:19px;font-weight:600;text-decoration:none;
+    color:var(--text-primary);margin-right:auto;display:flex;align-items:center;gap:9px;}
+  .brand .mark{width:22px;height:22px;border-radius:5px;
+    background:repeating-linear-gradient(90deg,var(--human) 0 4px,var(--peer) 4px 7px,var(--warm) 7px 11px);}
+  .brand small{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--text-secondary);font-weight:400;}
+  .btn{display:inline-block;font-weight:600;font-size:14.5px;border-radius:10px;
+    padding:10px 18px;text-decoration:none;border:1.5px solid transparent;cursor:pointer;
+    font-family:inherit;}
+  .btn-primary{background:var(--human);color:#fff;}
+  .btn-primary:hover{background:#3f684e;}
+  .btn-ghost{background:#fff;color:var(--text-primary);border-color:var(--border);}
+  .btn-ghost:hover{border-color:var(--human);color:var(--human);}
+  .btn-small{font-size:13px;padding:7px 13px;border-radius:8px;}
+  .btn:disabled{opacity:.45;cursor:default;}
+
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--human);margin:0 0 14px;}
+  h1{font-size:clamp(32px,5vw,48px);line-height:1.08;margin:0 0 12px;letter-spacing:-.015em;}
+  h2{font-size:26px;margin:0 0 6px;}
+  .sub{font-size:17px;color:var(--text-secondary);max-width:62ch;margin:0 0 26px;}
+
+  /* ---------- the door ---------- */
+  .door{padding:60px 0 40px;}
+  .door-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:28px 26px;max-width:520px;}
+  .field{display:block;margin:0 0 6px;font-weight:600;font-size:14px;}
+  .hint{font-size:13px;color:var(--text-secondary);margin:6px 0 0;}
+  input[type=text]{width:100%;font-family:inherit;font-size:16px;padding:11px 13px;
+    border:1.5px solid var(--border);border-radius:10px;background:#fff;color:inherit;}
+  input[type=text]:focus{outline:2px solid var(--human);outline-offset:1px;border-color:var(--human);}
+  .door-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center;}
+
+  /* ---------- the board ---------- */
+  .board{display:none;padding:34px 0 80px;}
+  .board.on{display:block;}
+  .class-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px;
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;}
+  .class-bar b{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.06em;}
+  .class-bar .spacer{margin-right:auto;}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .tab{font-weight:600;font-size:14.5px;padding:9px 16px;border-radius:10px;cursor:pointer;
+    background:#fff;border:1.5px solid var(--border);color:var(--text-secondary);font-family:inherit;}
+  .tab.on{background:var(--human);border-color:var(--human);color:#fff;}
+  .panel{display:none;}
+  .panel.on{display:block;}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:20px 22px;margin:0 0 16px;}
+  .card h3{margin:0 0 4px;font-size:18px;font-family:'Fraunces',serif;font-weight:500;}
+  .card .meta{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--text-secondary);margin:0 0 12px;}
+
+  /* prompts */
+  .book-head{display:flex;align-items:baseline;gap:10px;margin:30px 0 10px;flex-wrap:wrap;}
+  .book-head h2{font-family:'Fraunces',serif;font-weight:500;}
+  .book-head span{font-size:13.5px;color:var(--text-secondary);}
+  .stop{border-top:1px solid var(--border);padding:16px 0 4px;}
+  .stop:first-of-type{border-top:0;}
+  .stop .who{font-weight:600;font-size:14.5px;margin:0;}
+  .stop .line{font-family:'Fraunces',serif;font-size:15.5px;line-height:1.55;
+    color:var(--text-primary);margin:3px 0 10px;}
+  .stop .line.retold{font-family:'Public Sans',sans-serif;font-style:italic;font-size:14.5px;
+    color:var(--text-secondary);}
+  .stop .theirs{font-size:13.5px;color:var(--text-secondary);margin:0 0 8px;}
+  .stop textarea{width:100%;min-height:62px;font-family:inherit;font-size:14.5px;padding:10px 12px;
+    border:1.5px solid var(--border);border-radius:10px;background:#fff;color:inherit;resize:vertical;}
+  .stop textarea:focus{outline:2px solid var(--human);outline-offset:1px;border-color:var(--human);}
+  .stop textarea.changed{border-color:var(--human);background:#FCFFFB;}
+  .stop-actions{display:flex;gap:9px;align-items:center;margin:8px 0 0;flex-wrap:wrap;}
+  .saved{font-size:12.5px;color:var(--human);font-weight:600;opacity:0;transition:opacity .2s;}
+  .saved.on{opacity:1;}
+  .badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.07em;
+    text-transform:uppercase;padding:3px 8px;border-radius:20px;background:var(--human-light);
+    color:var(--human);font-weight:500;}
+  .badge.grey{background:#E7EBE5;color:var(--text-secondary);}
+
+  /* responses */
+  .walk-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px;}
+  .resp{border-left:3px solid var(--border);padding:2px 0 2px 14px;margin:14px 0;}
+  .resp.read{border-left-color:var(--human);}
+  .resp.class{border-left-color:var(--peer);}
+  .resp.other{border-left-color:#2F6D6A;}
+  .resp .rmeta{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;
+    color:var(--text-secondary);margin:0 0 3px;}
+  .resp .q{font-size:13.5px;font-weight:600;margin:0 0 4px;}
+  .resp .a{font-family:'Fraunces',serif;font-size:16px;line-height:1.6;margin:0;
+    white-space:pre-wrap;}
+  .resp .none{font-family:'Public Sans',sans-serif;font-size:13.5px;color:var(--text-secondary);
+    font-style:italic;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0;}
+  .chip{font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;color:#fff;}
+  .chip.own{background:#6E747C;}
+  .room-line{font-size:13.5px;color:var(--text-secondary);margin:0 0 6px;}
+  .room-line b{color:var(--text-primary);}
+
+  /* artifacts */
+  .art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}
+  .art{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;}
+  .art canvas{width:100%;height:auto;display:block;border-radius:8px;background:#FBFAF6;}
+  .art .cap{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;
+    color:var(--text-secondary);margin:9px 0 0;}
+
+  /* pen names */
+  .pen-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 18px;}
+  .pen-tools input[type=number]{width:80px;font-family:inherit;font-size:15px;padding:8px 10px;
+    border:1.5px solid var(--border);border-radius:10px;background:#fff;color:inherit;}
+  .pen-sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+  .pen-slip{position:relative;background:#fff;border:1.5px dashed var(--border);border-radius:12px;padding:16px 16px 14px;
+    break-inside:avoid;}
+  .pen-slip .pn{font-family:'Fraunces',serif;font-size:21px;font-weight:500;margin:0 0 2px;}
+  .pen-slip .pc{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--text-secondary);margin:0 0 16px;}
+  .pen-slip .given{font-size:13px;color:var(--text-secondary);margin:0;border-bottom:1px solid var(--text-secondary);
+    padding-bottom:2px;}
+  .pen-slip .pw{font-size:12px;color:var(--human);margin:8px 0 0;}
+  .pen-slip .back{position:absolute;top:8px;right:8px;background:none;border:0;color:var(--text-secondary);
+    font-size:12px;cursor:pointer;text-decoration:underline;font-family:inherit;}
+  .pen-filter{font-family:inherit;font-size:13.5px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;
+    background:#fff;color:inherit;}
+  @media print{
+    header.top, footer, .class-bar, .tabs, .panel:not(#p-pens), #p-pens .note, #p-pens .pen-tools,
+    .pen-slip .back, .pen-slip .pw{display:none !important;}
+    body{background:#fff;}
+    .board{padding:0;}
+    #p-pens{display:block !important;}
+    .pen-sheet{grid-template-columns:repeat(3,1fr);gap:0;}
+    .pen-slip{border-radius:0;border:1px dashed #999;padding:22px 18px 26px;}
+  }
+
+  /* artifact views, and the jump bar on the prompts */
+  .art-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 18px;}
+  .seg{display:inline-flex;flex-wrap:wrap;border:1.5px solid var(--human);border-radius:10px;overflow:hidden;background:#fff;}
+  .seg button{font-family:inherit;font-size:13.5px;font-weight:600;padding:8px 14px;background:#fff;border:0;color:var(--human);cursor:pointer;}
+  .seg button + button{border-left:1.5px solid var(--human);}
+  .seg button[aria-pressed="true"]{background:var(--human);color:#fff;}
+  .jump-bar{position:sticky;top:62px;z-index:10;display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    background:rgba(239,243,236,.96);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:12px;
+    padding:10px 14px;margin:0 0 8px;}
+  .jump-bar b{font-size:13px;color:var(--text-secondary);font-weight:600;margin-right:2px;}
+  .jump-bar select{font-family:inherit;font-size:13.5px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;
+    background:#fff;color:inherit;max-width:100%;}
+  .card.flash{box-shadow:0 0 0 3px var(--human-light);transition:box-shadow .4s;}
+  [id^="pr-"], [id^="bk-"]{scroll-margin-top:180px;}
+
+  /* the whole class, as one shape */
+  .class-shape{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin:0 0 22px;}
+  .class-shape .cs-head{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px;}
+  .class-shape h3{margin:0;font-family:'Fraunces',serif;font-weight:500;font-size:22px;}
+  .class-shape .hint{max-width:62ch;}
+  .class-shape .cs-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .class-shape canvas{display:block;margin:0 auto;max-width:100%;}
+  .class-shape:fullscreen{background:#FBFAF6;border:0;border-radius:0;padding:16px 24px;overflow:hidden;}
+  .class-shape:fullscreen .hint{display:none;}
+
+  .empty{background:var(--parchment);border:1px solid var(--parchment-line);border-radius:12px;
+    padding:18px 20px;font-size:14.5px;color:var(--text-secondary);}
+  .note{font-size:13px;color:var(--text-secondary);max-width:70ch;}
+  .warn{background:#FBF1E4;border:1px solid #E7D3B4;border-radius:12px;padding:14px 18px;
+    font-size:13.5px;color:#6A5330;margin:0 0 20px;}
+  .warn b{color:#4A3A20;}
+  footer{border-top:1px solid var(--border);padding:24px 0 50px;font-size:13px;
+    color:var(--text-secondary);}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="index.html"><span class="mark"></span>Loci Line <small>teacher</small></a>
+    <a class="btn btn-ghost btn-small" href="index.html">Back to the site</a>
+    <a class="btn btn-ghost btn-small" href="app.html">Open the student tool</a>
+  </div>
+</header>
+
+<!-- ---------- the door: a classroom number ---------- -->
+<section class="door" id="door">
+  <div class="wrap">
+    <p class="eyebrow">The teacher's side</p>
+    <h1 class="display">Your class, your questions</h1>
+    <p class="sub">Every stop in every room asks one question. This is where you replace any of them with
+      your own &mdash; and where you read what your class wrote back, word for word, with nothing in
+      between.</p>
+
+    <div class="door-card">
+      <label class="field" for="class-in">Classroom number</label>
+      <input type="text" id="class-in" placeholder="e.g. 9TB, Room 12, Kōwhai" autocomplete="off">
+      <p class="hint">Whatever you call the class. It labels the prompts you write and the walks that come
+        back, so two classes on the same device don't get mixed up.</p>
+      <div class="door-actions">
+        <button class="btn btn-primary" id="class-go">Open my class</button>
+        <span class="hint" id="class-known"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- the board ---------- -->
+<section class="board" id="board">
+  <div class="wrap">
+    <div class="class-bar">
+      <b id="class-name"></b>
+      <span class="spacer"></span>
+      <label class="hint" for="pen-filter">Showing</label>
+      <select class="pen-filter" id="pen-filter"></select>
+      <span class="hint" id="class-counts"></span>
+      <button class="btn btn-ghost btn-small" id="class-switch">Switch class</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-p="prompts">The prompts</button>
+      <button class="tab" data-p="responses">What they wrote</button>
+      <button class="tab" data-p="artifacts">Their artifacts</button>
+      <button class="tab" data-p="pens">Pen names</button>
+    </div>
+
+    <!-- prompts -->
+    <div class="panel on" id="p-prompts">
+      <p class="note" style="margin-bottom:18px;">One question stands at each stop. Write over any of them
+        and your class sees yours instead &mdash; they are never told it changed, because either way the
+        question is the one their teacher set. Leave a box empty to go back to the original.</p>
+      <div id="prompt-list"></div>
+    </div>
+
+    <!-- responses -->
+    <div class="panel" id="p-responses">
+      <div class="warn"><b>This is the only place any of this is read.</b> Nothing a student writes is
+        sent anywhere, scored, summarised or shown to an AI &mdash; not in the tool, and not here. It is
+        printed below exactly as they typed it.</div>
+      <div id="resp-list"></div>
+    </div>
+
+    <!-- artifacts -->
+    <div class="panel" id="p-artifacts">
+      <div class="art-tools">
+        <div class="seg" role="group" aria-label="Which picture">
+          <button type="button" data-v="shape" aria-pressed="true">The book's shape</button>
+          <button type="button" data-v="path" aria-pressed="false">The path walked</button>
+          <button type="button" data-v="choice" aria-pressed="false">The shape of the choice</button>
+        </div>
+        <select class="pen-filter" id="art-book" aria-label="Which book"></select>
+      </div>
+      <p class="note" id="art-note" style="margin:-6px 0 16px;"></p>
+      <div id="class-shapes"></div>
+      <div class="art-grid" id="art-list"></div>
+    </div>
+
+    <!-- pen names -->
+    <div class="panel" id="p-pens">
+      <p class="note" style="margin-bottom:18px;">Each child walks under a pen name, the name of a writer or a
+        character from a book, so you can see who did what without this tool ever holding a real name. Deal
+        one per child, print the slips, and write the child's name on the <b>paper</b> slip. Keep the slips
+        yourself. The child picks their pen name from a list on the bookshelf; they can't type one, so a real
+        name can't go in by mistake.</p>
+      <div class="pen-tools">
+        <label class="field" for="pen-n" style="margin:0;">How many children?</label>
+        <input type="number" id="pen-n" min="1" max="64" value="25">
+        <button class="btn btn-primary btn-small" id="pen-deal">Deal pen names</button>
+        <button class="btn btn-ghost btn-small" id="pen-print">Print the slips</button>
+        <button class="btn btn-ghost btn-small" id="pen-clear">Take them all back</button>
+      </div>
+      <div class="pen-sheet" id="pen-sheet"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><b>Where this lives.</b> Prompts and walks are kept in this browser, on this device, and go
+      nowhere else. There is no account and no server in this prototype: a class set of responses is
+      whatever was walked on this machine. Student logins and a real class roll are the next piece of
+      work, not this one.</p>
+  </div>
+</footer>
+
+<script src="shapes.js"></script>
+<script>
+/* ============================================================================
+   The teacher's side.
+
+   It shares nothing with the student tool except four keys in this browser's
+   storage (see the long note in app.html): the catalogue of stops comes out of
+   the tool, the prompts go back in, and the finished walks come out.
+
+   Deliberately dumb: this page prints what it is given and writes what a teacher
+   types. It does not analyse a single word of a child's writing, and there is no
+   model anywhere near it. That is the whole point of the piece and it has to
+   hold on this side of the wall too.
+============================================================================ */
+const CLASS_KEY = 'lociline:classroom';
+const PROMPT_KEY = 'lociline:prompts';
+const WALKS_KEY = 'lociline:walks';
+const CAT_KEY = 'lociline:catalogue';
+
+const lsGet = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
+const lsSet = (k,v) => { try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } };
+const lsJSON = (k, fb) => { try{ return JSON.parse(lsGet(k)) || fb; }catch(e){ return fb; } };
+
+const $ = id => document.getElementById(id);
+const rgbCss = a => 'rgb(' + a[0] + ',' + a[1] + ',' + a[2] + ')';
+const when = ms => new Date(ms).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+
+let CLASS = (lsGet(CLASS_KEY) || '').trim();
+let PROMPTS = lsJSON(PROMPT_KEY, {});
+let CATALOGUE = lsJSON(CAT_KEY, null);
+
+/* ---------------------------------------------------------------------------
+   A sample class, so this page can be looked at before anybody has walked
+   anything. It is invented — three made-up children with made-up answers — and
+   it is labelled as such everywhere it appears. It disappears from the counts
+   the moment there is a real walk on the device. Its children go under pen
+   names, as a real class does, and walk the real rooms once the student tool
+   has published them (the old rectangle below is only for a device where it
+   never has).
+--------------------------------------------------------------------------- */
+const SAMPLE_PLAN = {
+  bounds:{x0:-900, x1:900, z0:-2200, z1:255},
+  stations:{a1:{x:-640,z:-200}, a2:{x:-640,z:-1040}, b1:{x:640,z:-200}, b2:{x:640,z:-1040}, c:{x:0,z:-1700}},
+  exitAt:{x:0, z:-2100},
+  walls:[{x0:-240,x1:240,z0:-1240,z1:55},{x0:-900,x1:-820,z0:-1240,z1:55},{x0:820,x1:900,z0:-1240,z1:55}]
+};
+const T = {love:{short:'Love',rgb:[180,87,74]}, feud:{short:'The old feud',rgb:[59,110,168]},
+           fate:{short:'Fate',rgb:[139,95,163]}, haste:{short:'Youth and haste',rgb:[224,163,57]},
+           duty:{short:'Family duty',rgb:[76,122,93]}, own:{short:'Something else',rgb:[110,116,124]}};
+const th = ids => ids.map(i => ({id:i, short:T[i].short, rgb:T[i].rgb}));
+const sampleTrail = side => {
+  const s = side === 'a' ? -1 : 1, out = [];
+  [[0,205],[s*300,60],[s*640,-200],[s*560,-620],[s*640,-1040],[s*400,-1300],[0,-1700],[0,-2100]]
+    .forEach(([x,z]) => out.push([x,z]));
+  return out;
+};
+/* a sample walk on the book's real plan, if the catalogue has one: its route
+   is the lead-in, the side it took, and the way out */
+function dressSample(w){
+  const book = CATALOGUE && CATALOGUE.books && CATALOGUE.books.find(b => b.id === w.book);
+  const plan = book && book.plan;
+  if(!plan || !plan.routes) return Object.assign({penName: w.who}, w);
+  return Object.assign({penName: w.who}, w, {plan, rooms: w.rooms.map(r => {
+    const trail = [];
+    ['lead', r.side, 'c', 'tail'].forEach(id => (plan.routes[id] || []).forEach(q => trail.push(q)));
+    trail.push([plan.exitAt.x, plan.exitAt.z]);
+    return Object.assign({}, r, {trail});
+  })});
+}
+const SAMPLE = [
+  {sample:true, who:'Jo March', when:Date.now()-86400000*2, book:'romeo', bookTitle:'Romeo and Juliet — Act I',
+   plan:SAMPLE_PLAN, rooms:[{scene:'I.1', label:'Act I, scene 1', title:'The brawl in the square',
+     side:'a', sideName:'The quarrel', backtracks:1, trail:sampleTrail('a'), stops:[
+     {id:'a1', who:'Sampson', line:'Do you bite your thumb at us, sir?',
+      prompt:'The whole feud restarts over a rude gesture. What does that tell you about it?',
+      themes:th(['feud']), themeOwn:'', source:'read', sourceLabel:'from reading', where:'',
+      text:'It tells me they were already angry before this and the thumb thing is just an excuse to start.', dwellMs:41000},
+     {id:'a2', who:'Tybalt', line:'I hate the word, as I hate hell, all Montagues, and thee.',
+      prompt:'Tybalt hates the word “peace”. What do you think he’d lose if the fighting stopped?',
+      themes:th(['feud','own']), themeOwn:'being important', source:'class', sourceLabel:'from class talk', where:'',
+      text:'He would lose being the scary one. If nobody is fighting then he is just a normal person in the street.', dwellMs:67000},
+     {id:'c', who:'Lady Montague', line:'O, where is Romeo? Right glad I am he was not at this fray.',
+      prompt:'Romeo isn’t in the fight at all. Why do you think the play starts without him?',
+      themes:th(['love']), themeOwn:'', source:'read', sourceLabel:'from reading', where:'',
+      text:'So we meet him on his own first and not as a Montague in a fight.', dwellMs:38000}]}]},
+  {sample:true, who:'Phileas Fogg', when:Date.now()-86400000*2+540000, book:'romeo', bookTitle:'Romeo and Juliet — Act I',
+   plan:SAMPLE_PLAN, rooms:[{scene:'I.1', label:'Act I, scene 1', title:'The brawl in the square',
+     side:'b', sideName:'The peacemakers', backtracks:0, trail:sampleTrail('b'), stops:[
+     {id:'b1', who:'Benvolio', line:'Part, fools! Put up your swords; you know not what you do.',
+      prompt:'Benvolio tries to stop it and gets pulled in anyway. Have you seen that happen?',
+      themes:th(['duty']), themeOwn:'', source:'other', sourceLabel:'from elsewhere', where:'a fight at my old school',
+      text:'Yeah. My cousin tried to split up a fight and he was the one who got in trouble for it.', dwellMs:52000},
+     {id:'b2', who:'Prince Escalus', line:'Your lives shall pay the forfeit of the peace.',
+      prompt:'The Prince threatens death to stop a street fight. Does that seem fair to you?',
+      themes:th(['fate','duty']), themeOwn:'', source:'read', sourceLabel:'from reading', where:'',
+      text:'No because the servants started it and he is threatening everyone. But nothing else has worked so far.', dwellMs:71000},
+     {id:'c', who:'Lady Montague', line:'O, where is Romeo? Right glad I am he was not at this fray.',
+      prompt:'Romeo isn’t in the fight at all. Why do you think the play starts without him?',
+      themes:[], themeOwn:'', source:null, sourceLabel:'', where:'', text:'', dwellMs:9000}]}]},
+  {sample:true, who:'Mary Lennox', when:Date.now()-86400000, book:'pride', bookTitle:'Pride and Prejudice — Chapter 1',
+   plan:SAMPLE_PLAN, rooms:[{scene:'P.1', label:'Chapter 1', title:'Netherfield Park is let at last',
+     side:'b', sideName:'The library', backtracks:2, trail:sampleTrail('b'), stops:[
+     {id:'b1', who:'Mr Bennet', line:'You want to tell me, and I have no objection to hearing it.',
+      prompt:'He makes her ask him to listen. Is that funny, or unkind — or both at once?',
+      themes:th(['own']), themeOwn:'winding someone up', source:'class', sourceLabel:'from class talk', where:'',
+      text:'Both. It is funny when you read it but if someone did that to you every day it would be mean.', dwellMs:59000},
+     {id:'c', who:'The narrator', line:'The business of her life was to get her daughters married; its solace was visiting and news.',
+      prompt:'The narrator sums up Mrs Bennet’s whole life in one sentence. Is that fair to her?',
+      themes:th(['duty']), themeOwn:'', source:'read', sourceLabel:'from reading', where:'',
+      text:'Not really fair. She has five daughters and no money of her own so of course that is her whole job.', dwellMs:83000}]}]}
+];
+
+/* ---------------------------------------------------------------------------
+   the door
+--------------------------------------------------------------------------- */
+function openDoor(){
+  $('class-in').value = CLASS;
+  $('class-known').textContent = CLASS ? 'Last time you opened ' + CLASS + '.' : '';
+  $('door').style.display = 'block';
+  $('board').classList.remove('on');
+}
+function enterClass(){
+  const v = $('class-in').value.trim();
+  if(!v){ $('class-in').focus(); return; }
+  CLASS = v;
+  lsSet(CLASS_KEY, CLASS);
+  $('door').style.display = 'none';
+  $('board').classList.add('on');
+  $('class-name').textContent = CLASS;
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+$('class-go').onclick = enterClass;
+$('class-in').addEventListener('keydown', e => { if(e.key === 'Enter') enterClass(); });
+$('class-switch').onclick = openDoor;
+
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + t.dataset.p));
+});
+
+/* ---------------------------------------------------------------------------
+   the prompts
+--------------------------------------------------------------------------- */
+function promptKey(scene, stop){ return scene + '.' + stop; }
+
+function renderPrompts(){
+  const box = $('prompt-list');
+  if(!CATALOGUE || !CATALOGUE.books){
+    box.innerHTML = '<div class="empty">The books haven’t been loaded on this device yet. ' +
+      '<a href="app.html">Open the student tool</a> once and come back &mdash; it writes the list of ' +
+      'rooms and stops out as it starts, so this page never keeps a second copy of them.</div>';
+    return;
+  }
+  const jump = '<div class="jump-bar"><b>Jump to</b>' + CATALOGUE.books.map(b =>
+    '<select data-jump aria-label="' + esc(b.title) + '"><option value="">' + esc(b.title) + '</option>' +
+    '<option value="bk-' + esc(b.id) + '">The whole ' + (b.rooms.length > 1 ? esc(b.unit || 'book') : esc(b.piece || 'book')) + '</option>' +
+    b.rooms.map(r => '<option value="pr-' + esc(r.scene) + '">' + esc(r.label) + ' — ' + esc(r.title) + '</option>').join('') +
+    '</select>').join('') + '</div>';
+  box.innerHTML = jump + CATALOGUE.books.map(b => `
+    <div class="book-head" id="bk-${esc(b.id)}">
+      <h2 class="display">${esc(b.title)}</h2>
+      <span>${b.rooms.length} room${b.rooms.length === 1 ? '' : 's'} &middot; ${b.piece}</span>
+    </div>
+    ${b.rooms.map(r => `
+      <div class="card" id="pr-${esc(r.scene)}">
+        <h3>${esc(r.label)} &mdash; ${esc(r.title)}</h3>
+        <p class="meta">${r.wings ? esc(r.wings.a) + ' &nbsp;/&nbsp; ' + esc(r.wings.b) : 'no fork'}
+          ${r.paraphrase ? '&nbsp;&middot;&nbsp; retold, not quoted' : ''}</p>
+        ${r.stops.map(st => {
+          const k = promptKey(r.scene, st.id);
+          const own = PROMPTS[k] || '';
+          return `<div class="stop">
+            <p class="who">${esc(st.who)} <span class="badge ${own ? '' : 'grey'}">${own ? 'yours' : 'original'}</span></p>
+            <p class="line ${r.paraphrase ? 'retold' : ''}">${esc(st.line)}</p>
+            <p class="theirs"><b>The question as written:</b> ${esc(st.prompt)}</p>
+            <textarea data-k="${k}" placeholder="Ask this stop something else…"
+              class="${own ? 'changed' : ''}">${esc(own)}</textarea>
+            <div class="stop-actions">
+              <button class="btn btn-primary btn-small" data-save="${k}">Save</button>
+              <button class="btn btn-ghost btn-small" data-reset="${k}">Use the original</button>
+              <span class="saved" data-saved="${k}">Saved for ${esc(CLASS)}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`).join('')}
+  `).join('');
+
+  box.querySelectorAll('[data-jump]').forEach(sel => sel.onchange = () => {
+    const el = sel.value && document.getElementById(sel.value);
+    sel.value = '';
+    if(!el) return;
+    el.scrollIntoView({behavior:'smooth', block:'start'});
+    if(el.classList.contains('card')){ el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1400); }
+  });
+  box.querySelectorAll('[data-save]').forEach(btn => btn.onclick = () => {
+    const k = btn.dataset.save;
+    const ta = box.querySelector('textarea[data-k="' + k + '"]');
+    const v = ta.value.trim();
+    if(v) PROMPTS[k] = v; else delete PROMPTS[k];
+    lsSet(PROMPT_KEY, JSON.stringify(PROMPTS));
+    ta.classList.toggle('changed', !!v);
+    const badge = ta.closest('.stop').querySelector('.badge');
+    badge.textContent = v ? 'yours' : 'original';
+    badge.classList.toggle('grey', !v);
+    const flag = box.querySelector('[data-saved="' + k + '"]');
+    flag.textContent = v ? 'Saved for ' + CLASS : 'Back to the original';
+    flag.classList.add('on');
+    setTimeout(() => flag.classList.remove('on'), 1800);
+  });
+  box.querySelectorAll('[data-reset]').forEach(btn => btn.onclick = () => {
+    const k = btn.dataset.reset;
+    box.querySelector('textarea[data-k="' + k + '"]').value = '';
+    box.querySelector('[data-save="' + k + '"]').click();
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   what they wrote
+--------------------------------------------------------------------------- */
+let PEN_FILTER = '';
+const PEN_KEY = 'lociline:pennames';
+const nameOf = w => w.penName || (w.sample ? w.who : '') || '';
+/* the made-up rooms offered on the homepage always open on the sample class,
+   so a visitor trying the dashboard never lands on anybody's real walks */
+const DEMO_ROOMS = ['Practice R1', 'Practice R2', 'Practice R3', 'Practice R4', 'Practice R5'];
+const isDemo = () => DEMO_ROOMS.includes(CLASS);
+function walks(){
+  const real = isDemo() ? [] : lsJSON(WALKS_KEY, []).filter(w => !CLASS || !w.classroom || w.classroom === CLASS);
+  let all = real.length ? real.slice().reverse() : SAMPLE.map(dressSample).reverse();
+  if(PEN_FILTER) all = all.filter(w => (PEN_FILTER === '-' ? !nameOf(w) : nameOf(w) === PEN_FILTER));
+  return {real, all, sample: !real.length};
+}
+
+function renderResponses(){
+  const box = $('resp-list');
+  const {all, sample} = walks();
+  const head = sample
+    ? isDemo() ? '<div class="empty" style="margin-bottom:18px;"><b>' + esc(CLASS) + ' is a demo room.</b> The class below is made up, so you can see what comes back from a walk.</div>' : '<div class="empty" style="margin-bottom:18px;"><b>Nobody in ' + esc(CLASS) + ' has finished a walk on ' +
+      'this device yet.</b> What follows is a made-up class, so you can see the shape of it. Real walks ' +
+      'replace it as soon as one arrives.</div>'
+    : '';
+  if(!all.length){ box.innerHTML = head + '<div class="empty">No walks under that pen name yet.</div>'; return; }
+  box.innerHTML = head + all.map((w, i) => `
+    <div class="card">
+      <div class="walk-head">
+        <h3>${esc(nameOf(w) || 'No pen name')} &mdash; ${esc(w.bookTitle || w.book)}</h3>
+        ${w.sample ? '<span class="badge grey">made up</span>' : ''}
+      </div>
+      <p class="meta">${when(w.when)}${w.classroom ? ' &middot; ' + esc(w.classroom) : ''}</p>
+      ${w.rooms.filter(r => r.stops.length).map(r => `
+        <p class="room-line"><b>${esc(r.label)}</b> &mdash; went ${r.sideName ? 'into ' + esc(r.sideName) : 'no way in particular'}
+          &middot; ${r.stops.length} stop${r.stops.length === 1 ? '' : 's'}
+          ${r.backtracks ? '&middot; looped back ' + r.backtracks + '&times;' : ''}</p>
+        ${r.stops.map(st => `
+          <div class="resp ${st.source || ''}">
+            <p class="rmeta">${esc(st.who)}${st.sourceLabel ? ' &middot; ' + esc(st.sourceLabel) : ''}${
+              st.where ? ' &middot; ' + esc(st.where) : ''}</p>
+            <p class="q">${esc(st.prompt)}</p>
+            ${st.text && st.text.trim()
+              ? '<p class="a"></p>'
+              : '<p class="a none">Walked past it without writing &mdash; which is allowed.</p>'}
+            ${(st.themes || []).length ? '<div class="chips">' + st.themes.map(t =>
+                '<span class="chip' + (t.id === 'own' ? ' own' : '') + '" style="background:' + rgbCss(t.rgb) + '">' +
+                esc(t.id === 'own' && st.themeOwn ? st.themeOwn : t.short) + '</span>').join('') + '</div>' : ''}
+          </div>`).join('')}
+      `).join('')}
+    </div>`).join('');
+
+  /* Their words go in as text, never as markup — the same rule the student tool
+     follows. A child who types a tag into the box types a tag, not an element. */
+  const bodies = box.querySelectorAll('.resp .a:not(.none)');
+  let n = 0;
+  all.forEach(w => w.rooms.filter(r => r.stops.length).forEach(r => r.stops.forEach(st => {
+    if(st.text && st.text.trim()) bodies[n++].textContent = st.text;
+  })));
+}
+
+/* ---------------------------------------------------------------------------
+   their artifacts — the same drawing the student is shown at the end, small
+--------------------------------------------------------------------------- */
+function drawArtifact(cv, w){
+  const ctx = cv.getContext('2d');
+  const rooms = w.rooms.filter(r => r.trail && r.trail.length);
+  const plan = w.plan || SAMPLE_PLAN;
+  const B = plan.bounds;
+  const cols = Math.max(1, rooms.length);
+  const pad = 8, cell = (cv.width - pad*2) / cols;
+  const sc = Math.min(cell / (B.x1-B.x0), (cv.height - pad*2) / (B.z1-B.z0));
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  rooms.forEach((r, ri) => {
+    const ox = pad + ri*cell + cell/2, oz = pad + ((cv.height - pad*2) - (B.z1 - B.z0)*sc)/2;
+    const cx = (B.x0 + B.x1)/2;
+    const X = x => ox + (x - cx)*sc, Z = z => oz + (B.z1 - z)*sc;
+    // the room, and the blocks that make the two wings two routes
+    ctx.strokeStyle = '#DEE5DB'; ctx.lineWidth = 1;
+    if(!plan.runs) ctx.strokeRect(X(B.x0), Z(B.z1), (B.x1-B.x0)*sc, (B.z1-B.z0)*sc);
+    ctx.fillStyle = '#E4EAE2';
+    (plan.walls || []).forEach(wl =>
+      ctx.fillRect(X(wl.x0), Z(wl.z1), (wl.x1-wl.x0)*sc, (wl.z1-wl.z0)*sc));
+    // walks saved since every book got its own layout carry their walls as lines
+    ctx.strokeStyle = '#D2DACE'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    (plan.runs || []).forEach(r => {
+      ctx.lineWidth = Math.max(1, (r.t || 36)*sc);
+      ctx.beginPath();
+      r.pts.forEach(([x, z], i) => i ? ctx.lineTo(X(x), Z(z)) : ctx.moveTo(X(x), Z(z)));
+      if(r.closed) ctx.closePath();
+      ctx.stroke();
+    });
+    // the stops nobody reached
+    Object.keys(plan.stations).forEach(id => {
+      const s = plan.stations[id];
+      ctx.fillStyle = '#D8DFD6';
+      ctx.beginPath(); ctx.arc(X(s.x), Z(s.z), 2.6, 0, Math.PI*2); ctx.fill();
+    });
+    // the route actually walked
+    ctx.strokeStyle = '#4C7A5D'; ctx.lineWidth = 1.6; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    r.trail.forEach(([x,z], i) => i ? ctx.lineTo(X(x), Z(z)) : ctx.moveTo(X(x), Z(z)));
+    ctx.stroke();
+    // and the stops taken, coloured by what was tagged there
+    r.stops.forEach(st => {
+      const s = plan.stations[st.id];
+      if(!s) return;
+      const rad = 4 + Math.min(3.5, (st.dwellMs || 0)/22000);
+      const ts = st.themes || [];
+      if(!ts.length){ ctx.fillStyle = '#96A296'; ctx.beginPath(); ctx.arc(X(s.x), Z(s.z), rad, 0, Math.PI*2); ctx.fill(); }
+      else ts.forEach((t, k) => {
+        ctx.fillStyle = rgbCss(t.rgb);
+        ctx.beginPath(); ctx.moveTo(X(s.x), Z(s.z));
+        ctx.arc(X(s.x), Z(s.z), rad, -Math.PI/2 + k*2*Math.PI/ts.length,
+                -Math.PI/2 + (k+1)*2*Math.PI/ts.length);
+        ctx.fill();
+      });
+    });
+    // the way out
+    ctx.fillStyle = '#BEAA78';
+    ctx.beginPath(); ctx.arc(X(plan.exitAt.x), Z(plan.exitAt.z), 3, 0, Math.PI*2); ctx.fill();
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   The same walk, three ways, as the student sees it at the end: folded into
+   the book's shape (shapes.js, shared with the tool), the path on the real
+   floor, or the shape of the choice alone.
+--------------------------------------------------------------------------- */
+let ART_VIEW = 'shape', ART_BOOK = '';
+const cumulative = pts => { const c = [0]; for(let i = 1; i < pts.length; i++) c.push(c[i-1] + Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1])); return c; };
+function nearestOn(pts, cum, x, z){
+  let best = {d: Infinity, s: 0, i: 0};
+  for(let i = 0; i < pts.length - 1; i++){
+    const ax = pts[i][0], az = pts[i][1], dx = pts[i+1][0] - ax, dz = pts[i+1][1] - az, L2 = dx*dx + dz*dz;
+    const t = L2 ? Math.max(0, Math.min(1, ((x-ax)*dx + (z-az)*dz) / L2)) : 0;
+    const d = Math.hypot(x - ax - dx*t, z - az - dz*t);
+    if(d < best.d) best = {d, s: cum[i] + Math.sqrt(L2)*t, i};
+  }
+  return best;
+}
+function alongLine(pts, cum, s){
+  if(s <= 0) return pts[0];
+  for(let i = 1; i < pts.length; i++) if(cum[i] >= s){
+    const t = (s - cum[i-1]) / ((cum[i] - cum[i-1]) || 1);
+    return [pts[i-1][0] + (pts[i][0]-pts[i-1][0])*t, pts[i-1][1] + (pts[i][1]-pts[i-1][1])*t];
+  }
+  return pts[pts.length - 1];
+}
+function densify(pts, step){
+  const out = [];
+  pts.forEach((q, i) => {
+    if(i){ const a = pts[i-1], n = Math.floor(Math.hypot(q[0]-a[0], q[1]-a[1]) / step);
+      for(let k = 1; k < n; k++) out.push([a[0] + (q[0]-a[0])*k/n, a[1] + (q[1]-a[1])*k/n]); }
+    out.push(q);
+  });
+  return out;
+}
+/* the handful of p5 calls the shapes' deco() makes, on a plain canvas */
+function pen(ctx){
+  let fillC = null, strokeC = null, lw = 1, n = 0;
+  const col = (r, g, b, a) => 'rgba(' + r + ',' + g + ',' + b + ',' + (a == null ? 1 : a/255) + ')';
+  const P = {
+    CLOSE: 'close',
+    noStroke(){ strokeC = null; }, noFill(){ fillC = null; },
+    fill(r, g, b, a){ fillC = col(r, g, b, a); }, stroke(r, g, b, a){ strokeC = col(r, g, b, a); },
+    strokeWeight(w){ lw = w; },
+    paint(){
+      if(fillC){ ctx.fillStyle = fillC; ctx.fill(); }
+      if(strokeC){ ctx.strokeStyle = strokeC; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); }
+    },
+    beginShape(){ ctx.beginPath(); n = 0; },
+    vertex(x, y){ if(n++) ctx.lineTo(x, y); else ctx.moveTo(x, y); },
+    endShape(m){ if(m === 'close') ctx.closePath(); P.paint(); },
+    triangle(a, b, c, d, e, f){ ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.lineTo(e, f); ctx.closePath(); P.paint(); },
+    rect(x, y, w, h, r){ ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x, y, w, h, r || 0); else ctx.rect(x, y, w, h); P.paint(); },
+    ellipse(cx, cy, w, h){ ctx.beginPath(); ctx.ellipse(cx, cy, Math.abs(w/2), Math.abs(h/2), 0, 0, Math.PI*2); P.paint(); },
+    circle(cx, cy, d){ P.ellipse(cx, cy, d, d); },
+    line(a, b, c, d){ if(!strokeC) return; const f = fillC; fillC = null; ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); P.paint(); fillC = f; },
+  };
+  return P;
+}
+/* a stop: a pie of the themes tapped there, ringed by where it came from */
+const SOURCE_RGB = {read:[76,122,93], class:[139,95,163], other:[47,109,106]};
+function stopPie(ctx, x, y, st, r){
+  const ts = st.themes || [];
+  if(!ts.length){ ctx.fillStyle = '#96A296'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); }
+  else ts.forEach((t, k) => {
+    ctx.fillStyle = rgbCss(t.rgb);
+    ctx.beginPath(); ctx.moveTo(x, y);
+    ctx.arc(x, y, r, -Math.PI/2 + k*2*Math.PI/ts.length, -Math.PI/2 + (k+1)*2*Math.PI/ts.length);
+    ctx.fill();
+  });
+  if(st.source && SOURCE_RGB[st.source]){
+    ctx.strokeStyle = rgbCss(SOURCE_RGB[st.source]); ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(x, y, r + 2.5, 0, Math.PI*2); ctx.stroke();
+  }
+}
+const bookOf = id => CATALOGUE && CATALOGUE.books && CATALOGUE.books.find(b => b.id === id);
+const legOfStop = id => id[0] === 'a' ? 'a' : id[0] === 'b' ? 'b' : 'tail';
+
+/* The walk folded into its book's shape, one shape for the whole journey.
+   Given several walks of one book it draws the class: every route laid on the
+   same shape, faint, so the ways most of them went build up, and each stop
+   showing everything the class tagged there. No names go on it, and no
+   writing: it is made to be put up in front of the room. */
+function drawShapeOn(ctx, W, H, ws, cls){
+  ctx.clearRect(0, 0, W, H);
+  const w0 = ws.find(w => w.plan && w.plan.routes) || ws[0];
+  const plan = (w0 && w0.plan) || {};
+  const E = w0 && EMBLEMS[EMBLEM_FOR[w0.book]];
+  if(!E || !plan.routes) return false;
+  const book = bookOf(w0.book), n = book ? book.rooms.length : w0.rooms.length;
+  const pad = cls ? 24 : 12, sc = Math.min((W - pad*2) / 100, (H - pad*2) / E.h);
+  const ox = (W - 100*sc)/2, oy = (H - E.h*sc)/2;
+  const X = u => ox + u*sc, Y = v => oy + v*sc;
+  E.deco(pen(ctx), X, Y, 1, n);
+
+  const routes = {};
+  ['lead', 'a', 'b', 'tail'].forEach(id => { const pts = plan.routes[id]; if(pts && pts.length > 1){ const cum = cumulative(pts); routes[id] = {pts, cum, len: cum[cum.length - 1]}; } });
+  const midX = id => routes[id] ? routes[id].pts.reduce((m, q) => m + q[0], 0) / routes[id].pts.length : 0;
+  const aLeft = midX('a') <= midX('b');
+  const legCache = {};
+  const legsAt = ri => {
+    if(legCache[ri]) return legCache[ri];
+    const G = E.legsFor(ri, n), place = pts => pts.map(q => [X(q[0]), Y(q[1])]);
+    const L = {lead: place(G.lead), a: place(aLeft ? G.left : G.right), b: place(aLeft ? G.right : G.left), tail: place(G.tail)};
+    Object.keys(L).forEach(k => { const cum = cumulative(L[k]); L[k] = {pts: L[k], cum, len: cum[cum.length - 1]}; });
+    return (legCache[ri] = L);
+  };
+  const toShape = (L, x, z, only) => {
+    let best = null;
+    Object.keys(routes).forEach(id => {
+      if(only && id !== only) return;
+      const nn = nearestOn(routes[id].pts, routes[id].cum, x, z);
+      if(!best || nn.d < best.nn.d) best = {id, nn};
+    });
+    if(!best) return null;
+    const R = routes[best.id], leg = L[best.id];
+    return {q: alongLine(leg.pts, leg.cum, (R.len ? best.nn.s / R.len : 0) * leg.len), leg: best.id};
+  };
+  const roomIndex = (r, idx) => book ? Math.max(0, book.rooms.findIndex(o => o.scene === r.scene)) : idx;
+
+  // every leg of every room, ghosted, so the parts nobody walked still show
+  ctx.strokeStyle = 'rgba(190,180,170,.75)'; ctx.lineWidth = cls ? 1.4 : 1; ctx.lineJoin = 'round';
+  for(let k = 0; k < n; k++){
+    Object.values(legsAt(k)).forEach(l => { ctx.beginPath(); l.pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); });
+  }
+
+  // the routes, each leg tinted by the themes that walker tapped on it
+  const lw = cls ? Math.max(1.6, sc*0.9) : 2;
+  ctx.globalAlpha = cls ? Math.max(0.18, Math.min(0.7, 2.2 / ws.length)) : 1;
+  ws.forEach(w => w.rooms.forEach((r, idx) => {
+    const L = legsAt(roomIndex(r, idx));
+    const tint = {};
+    (r.stops || []).forEach(st => (st.themes || []).forEach(t => (tint[legOfStop(st.id)] = tint[legOfStop(st.id)] || []).push(t.rgb)));
+    const mix = id => { const l = tint[id]; return l ? [0,1,2].map(k => Math.round(l.reduce((m, c) => m + c[k], 0) / l.length)) : [76,122,93]; };
+    const pts = densify(r.trail || [], 10).map(([x, z]) => toShape(L, x, z)).filter(Boolean);
+    ctx.lineWidth = lw; ctx.lineCap = 'round';
+    for(let k = 1; k < pts.length; k++){
+      ctx.strokeStyle = rgbCss(mix(pts[k].leg));
+      ctx.beginPath(); ctx.moveTo(pts[k-1].q[0], pts[k-1].q[1]); ctx.lineTo(pts[k].q[0], pts[k].q[1]); ctx.stroke();
+    }
+  }));
+  ctx.globalAlpha = 1;
+
+  if(!cls){
+    w0.rooms.forEach((r, idx) => (r.stops || []).forEach(st => {
+      const s0 = plan.stations && plan.stations[st.id];
+      const e = s0 && toShape(legsAt(roomIndex(r, idx)), s0.x, s0.z, legOfStop(st.id));
+      if(e) stopPie(ctx, e.q[0], e.q[1], st, 3.6 + Math.min(2.5, (st.dwellMs || 0)/30000));
+    }));
+    return true;
+  }
+
+  /* the class at each stop: one pie of every theme anyone tapped there, as
+     big as the number of people who stopped, and the count beside it */
+  const seats = {};
+  ws.forEach(w => w.rooms.forEach((r, idx) => (r.stops || []).forEach(st => {
+    const key = roomIndex(r, idx) + '|' + st.id;
+    const o = seats[key] || (seats[key] = {ri: roomIndex(r, idx), id: st.id, people: 0, themes: {}});
+    o.people++;
+    (st.themes || []).forEach(t => { const k = t.id; (o.themes[k] = o.themes[k] || {rgb: t.rgb, n: 0}).n++; });
+  })));
+  const most = Math.max(1, ...Object.values(seats).map(o => o.people));
+  Object.values(seats).forEach(o => {
+    const s0 = plan.stations && plan.stations[o.id];
+    const e = s0 && toShape(legsAt(o.ri), s0.x, s0.z, legOfStop(o.id));
+    if(!e) return;
+    const [x, y] = e.q, r = Math.max(4, sc*1.2) * (0.7 + 0.8*Math.sqrt(o.people / most));
+    const parts = Object.values(o.themes), total = parts.reduce((m, t) => m + t.n, 0);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, r + 1.5, 0, Math.PI*2); ctx.fill();
+    if(!total){ ctx.fillStyle = '#96A296'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); }
+    else {
+      let a0 = -Math.PI/2;
+      parts.forEach(t => {
+        const a1 = a0 + 2*Math.PI * t.n / total;
+        ctx.fillStyle = rgbCss(t.rgb); ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r, a0, a1); ctx.closePath(); ctx.fill();
+        a0 = a1;
+      });
+    }
+    ctx.fillStyle = '#223026'; ctx.font = '600 ' + Math.round(Math.max(10, sc*1.25)) + 'px "Public Sans", sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(String(o.people), x + r + 4, y);
+  });
+  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  return true;
+}
+function drawShapeArtifact(cv, w){
+  const ctx = cv.getContext('2d');
+  if(drawShapeOn(ctx, cv.width, cv.height, [w], false)) return;
+  drawArtifact(cv, w);
+  ctx.fillStyle = '#5B6B5E'; ctx.font = '12px "Public Sans", sans-serif';
+  ctx.fillText('Saved before the shapes: shown as its path', 10, cv.height - 10);
+}
+
+/* ---------------------------------------------------------------------------
+   The whole class, one large shape per book, for putting up in front of the
+   room and talking about: where most of you went, where only a few did, and
+   what you all saw at each stop.
+--------------------------------------------------------------------------- */
+function classShapeSize(holder, E){
+  const fs = document.fullscreenElement === holder;
+  const W = fs ? window.innerWidth : Math.min(900, holder.clientWidth || 700);
+  const H = fs ? window.innerHeight - 70 : Math.round(Math.min(760, W * E.h / 100 + 48));
+  return [Math.round(W), Math.max(260, Math.round(H))];
+}
+/* A made-up class for the whole-class shape, only while the page is showing
+   the sample class: two dozen walks per book, sides and themes dealt by a
+   seeded shuffle so the picture is the same every time. No names, no writing. */
+function sampleClassFor(id, count){
+  const b = bookOf(id);
+  if(!b || !b.plan || !b.plan.routes) return [];
+  let seed = 0; for(const ch of id) seed = (seed*31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const lean = b.rooms.map(() => 0.25 + rnd()*0.5);              // how strongly each room pulls one way
+  const favour = b.rooms.map(() => b.themes[Math.floor(rnd()*b.themes.length)]);
+  const out = [];
+  for(let k = 0; k < count; k++) out.push({sample: true, book: id, plan: b.plan, rooms: b.rooms.map((r, ri) => {
+    const side = rnd() < lean[ri] ? 'a' : 'b';
+    const trail = [];
+    ['lead', side, 'tail'].forEach(leg => (b.plan.routes[leg] || []).forEach(q => trail.push([q[0] + (rnd() - .5)*40, q[1] + (rnd() - .5)*40])));
+    const stops = r.stops.filter(st => (st.id[0] === side || !/^[ab]/.test(st.id)) && rnd() < 0.85).map(st => {
+      const th = [];
+      if(rnd() < 0.8) th.push(rnd() < 0.5 ? favour[ri] : b.themes[Math.floor(rnd()*b.themes.length)]);
+      if(rnd() < 0.3){ const t = b.themes[Math.floor(rnd()*b.themes.length)]; if(!th.includes(t)) th.push(t); }
+      return {id: st.id, themes: th.map(t => ({id: t.id, short: t.short, rgb: t.rgb})), dwellMs: 20000};
+    });
+    return {scene: r.scene, side, trail, stops};
+  })});
+  return out;
+}
+function renderClassShapes(list){
+  const madeUp = walks().sample;
+  if(madeUp){
+    const books = ART_BOOK ? [ART_BOOK] : (CATALOGUE && CATALOGUE.books || []).map(b => b.id);
+    list = [].concat(...books.map(id => sampleClassFor(id, 24)));
+  }
+  const box = $('class-shapes');
+  const byBook = {};
+  list.forEach(w => { if(w.plan && w.plan.routes && EMBLEM_FOR[w.book]) (byBook[w.book] = byBook[w.book] || []).push(w); });
+  const ids = Object.keys(byBook);
+  if(ART_VIEW !== 'shape' || !ids.length){ box.innerHTML = ''; return; }
+  box.innerHTML = ids.map(id => {
+    const b = bookOf(id), E = EMBLEMS[EMBLEM_FOR[id]], k = byBook[id].length;
+    const sides = {};
+    byBook[id].forEach(w => w.rooms.forEach(r => { if(r.side) sides[r.side] = (sides[r.side] || 0) + 1; }));
+    return `<div class="class-shape" id="cs-${esc(id)}">
+      <div class="cs-head">
+        <div><h3>${esc(CLASS)}: ${esc(b ? b.title : id)}</h3>
+          <p class="hint">The whole class as one ${esc(E.name)}: ${madeUp ? 'a made-up class of ' + k + ' walks, to show the idea' : k + ' walk' + (k === 1 ? '' : 's')}.
+            The busier a line, the more of you went that way; each stop shows everything the class tagged there,
+            and how many stopped.</p></div>
+        <div class="cs-actions">
+          <button type="button" class="btn btn-ghost btn-small" data-full="${esc(id)}">Full screen</button>
+          <button type="button" class="btn btn-ghost btn-small" data-png="${esc(id)}">Save picture</button>
+        </div>
+      </div>
+      <canvas></canvas>
+    </div>`;
+  }).join('');
+  const draw = id => {
+    const holder = $('cs-' + id), cv = holder.querySelector('canvas'), E = EMBLEMS[EMBLEM_FOR[id]];
+    const [W, H] = classShapeSize(holder, E), d = window.devicePixelRatio || 1;
+    cv.width = W*d; cv.height = H*d; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0);
+    drawShapeOn(ctx, W, H, byBook[id], true);
+  };
+  ids.forEach(draw);
+  box.querySelectorAll('[data-full]').forEach(btn => btn.onclick = () => {
+    const holder = $('cs-' + btn.dataset.full);
+    if(document.fullscreenElement) document.exitFullscreen();
+    else if(holder.requestFullscreen) holder.requestFullscreen();
+  });
+  box.querySelectorAll('[data-png]').forEach(btn => btn.onclick = () => {
+    const cv = $('cs-' + btn.dataset.png).querySelector('canvas');
+    const link = document.createElement('a');
+    link.download = 'lociline-' + (CLASS || 'class').replace(/[^\w-]+/g, '-') + '-' + btn.dataset.png + '.png';
+    link.href = cv.toDataURL('image/png');
+    link.click();
+  });
+  CLASS_SHAPE_REDRAW = () => ids.forEach(id => $('cs-' + id) && draw(id));
+}
+let CLASS_SHAPE_REDRAW = null;
+document.addEventListener('fullscreenchange', () => { if(CLASS_SHAPE_REDRAW) setTimeout(CLASS_SHAPE_REDRAW, 60); });
+window.addEventListener('resize', () => { if(CLASS_SHAPE_REDRAW) CLASS_SHAPE_REDRAW(); });
+
+/* the shape of the choice: the walking thrown away, only the fork left */
+const CHOICE_FX = {start:0.03, fork:0.17, a1:0.34, a2:0.52, b1:0.34, b2:0.52, merge:0.68, c:0.84, exit:0.97};
+const CHOICE_EDGES = [['start','fork'],['fork','a1'],['a1','a2'],['a2','merge'],['fork','b1'],['b1','b2'],['b2','merge'],['merge','c'],['c','exit']];
+const CHOICE_ROUTE = {a:['start','fork','a1','a2','merge','c','exit'], b:['start','fork','b1','b2','merge','c','exit']};
+function drawChoiceArtifact(cv, w){
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const rooms = w.rooms, n = Math.max(1, rooms.length), pad = 8, cellW = (cv.width - pad*2) / n;
+  const yc = cv.height/2, spread = Math.min(70, cv.height*0.22);
+  rooms.forEach((r, ri) => {
+    const P = id => [pad + ri*cellW + CHOICE_FX[id]*cellW,
+      /^a/.test(id) ? yc - spread : /^b/.test(id) ? yc + spread : yc];
+    const curve = (a, b) => { const [x1, y1] = P(a), [x2, y2] = P(b), mx = (x1 + x2)/2;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.bezierCurveTo(mx, y1, mx, y2, x2, y2); ctx.stroke(); };
+    ctx.strokeStyle = '#DBE2D8'; ctx.lineWidth = 1.2;
+    CHOICE_EDGES.forEach(([a, b]) => curve(a, b));
+    if(ri < n - 1){ ctx.beginPath(); ctx.moveTo(...P('exit')); ctx.lineTo(pad + (ri+1)*cellW + CHOICE_FX.start*cellW, yc); ctx.stroke(); }
+    if(n > 1){ ctx.fillStyle = '#8C988C'; ctx.font = '10px "Public Sans", sans-serif'; ctx.fillText(r.label || r.scene, pad + ri*cellW + 2, 14); }
+    if(r.side){
+      ctx.strokeStyle = '#4C7A5D'; ctx.lineWidth = 2.6;
+      const route = CHOICE_ROUTE[r.side === 'b' ? 'b' : 'a'];
+      for(let k = 1; k < route.length; k++) curve(route[k-1], route[k]);
+    }
+    ['a1','a2','b1','b2','c'].forEach(id => {
+      const st = (r.stops || []).find(o => o.id === id), [x, y] = P(id);
+      if(!st){ ctx.fillStyle = '#D8DFD6'; ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI*2); ctx.fill(); return; }
+      stopPie(ctx, x, y, st, 4.5 + Math.min(3, (st.dwellMs || 0)/22000));
+    });
+    if(r.backtracks){
+      const [x, y] = P('fork');
+      ctx.fillStyle = '#B4574A'; ctx.font = '600 10px "Public Sans", sans-serif';
+      ctx.fillText('↺' + (r.backtracks > 1 ? ' ×' + r.backtracks : ''), x - 6, y - 10);
+    }
+  });
+}
+
+const ART_NOTES = {
+  shape: 'Each walk folded into its book’s shape, as the student sees it at the end: Romeo and Juliet is a rose with a petal per scene, Pride and Prejudice a sealed letter, Lord of the Flies a pig. The faint lines are the parts they didn’t walk.',
+  path: 'The real route through each room: the stops they took, and the colour of what they tagged there.',
+  choice: 'Only the decisions: which side of each fork they took, and what they tagged at each stop.',
+};
+function renderArtifactTools(){
+  const sel = $('art-book'), keep = ART_BOOK;
+  const ids = new Set();
+  (CATALOGUE && CATALOGUE.books || []).forEach(b => ids.add(b.id));
+  walks().all.forEach(w => ids.add(w.book));
+  sel.innerHTML = '';
+  sel.add(new Option('Every book', ''));
+  [...ids].forEach(id => { const b = bookOf(id); sel.add(new Option(b ? b.title : id, id)); });
+  sel.value = [...sel.options].some(o => o.value === keep) ? keep : '';
+  ART_BOOK = sel.value;
+  document.querySelectorAll('.art-tools .seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === ART_VIEW)));
+  $('art-note').textContent = ART_NOTES[ART_VIEW];
+}
+document.querySelectorAll('.art-tools .seg button').forEach(b => b.onclick = () => { ART_VIEW = b.dataset.v; renderArtifacts(); });
+$('art-book').onchange = e => { ART_BOOK = e.target.value; renderArtifacts(); };
+
+function renderArtifacts(){
+  const box = $('art-list');
+  renderArtifactTools();
+  const {sample} = walks();
+  const all = walks().all.filter(w => !ART_BOOK || w.book === ART_BOOK);
+  renderClassShapes(all);
+  if(!all.length){ box.innerHTML = '<div class="empty" style="grid-column:1/-1;">No walks for that book yet.</div>'; return; }
+  const tall = ART_VIEW === 'shape';
+  box.innerHTML = all.map((w, i) => `
+    <div class="art">
+      <canvas id="art-${i}" width="420" height="${tall ? 420 : 300}"></canvas>
+      <p class="cap">${esc(nameOf(w) || 'no pen name')} &middot; ${esc(w.bookTitle || w.book)}<br>${when(w.when)}${
+        w.sample ? ' &middot; made up' : ''}</p>
+    </div>`).join('');
+  const draw = ART_VIEW === 'shape' ? drawShapeArtifact : ART_VIEW === 'choice' ? drawChoiceArtifact : drawArtifact;
+  all.forEach((w, i) => draw($('art-' + i), w));
+  if(sample) box.insertAdjacentHTML('beforebegin', '');
+}
+
+/* ---------------------------------------------------------------------------
+   pen names: dealt from the student tool's own list, one per child. This page
+   stores which names this class has, and nothing about who holds them; that
+   lives on the paper slip, with the teacher.
+--------------------------------------------------------------------------- */
+const penBank = () => (CATALOGUE && Array.isArray(CATALOGUE.pennames)) ? CATALOGUE.pennames : [];
+const penAll = () => lsJSON(PEN_KEY, {});
+const penDealt = () => (penAll()[CLASS] || []).filter(n => penBank().includes(n));
+function penSave(list){ const all = penAll(); if(list.length) all[CLASS] = list; else delete all[CLASS]; lsSet(PEN_KEY, JSON.stringify(all)); }
+
+function dealPenNames(){
+  const want = Math.max(1, Math.min(64, parseInt($('pen-n').value, 10) || 0));
+  const have = penDealt();
+  // other classes on this device keep their names, so two classes never share one
+  const taken = new Set([].concat(...Object.values(penAll())));
+  const free = penBank().filter(n => !taken.has(n));
+  for(let i = free.length - 1; i > 0; i--){ const k = Math.floor(Math.random()*(i + 1)); [free[i], free[k]] = [free[k], free[i]]; }
+  const add = free.slice(0, Math.max(0, want - have.length));
+  penSave(have.concat(add));
+  render();
+}
+function renderPens(){
+  const sheet = $('pen-sheet');
+  if(!penBank().length){
+    sheet.innerHTML = '<div class="empty">The list of pen names comes from the student tool. ' +
+      '<a href="app.html">Open it</a> once on this device and come back.</div>';
+    $('pen-deal').disabled = $('pen-print').disabled = $('pen-clear').disabled = true;
+    return;
+  }
+  const dealt = penDealt(), real = lsJSON(WALKS_KEY, []).filter(w => w.classroom === CLASS);
+  $('pen-deal').disabled = false;
+  $('pen-print').disabled = $('pen-clear').disabled = !dealt.length;
+  $('pen-deal').textContent = dealt.length ? 'Deal up to this many' : 'Deal pen names';
+  if(!dealt.length){
+    sheet.innerHTML = '<div class="empty" style="grid-column:1/-1;">No pen names dealt for ' + esc(CLASS) +
+      ' yet. Until you deal some, children can pick any name on the list.</div>';
+    return;
+  }
+  sheet.innerHTML = dealt.map(n => {
+    const k = real.filter(w => w.penName === n).length;
+    return `<div class="pen-slip">
+      <button type="button" class="back" data-back="${esc(n)}" title="Take this name back">take back</button>
+      <p class="pn">${esc(n)}</p>
+      <p class="pc">Your pen name &middot; Loci Line &middot; ${esc(CLASS)}</p>
+      <p class="given">Given to:</p>
+      <p class="pw">${k ? k + (k === 1 ? ' walk' : ' walks') + ' under this name' : 'no walks yet'}</p>
+    </div>`;
+  }).join('');
+  sheet.querySelectorAll('[data-back]').forEach(b => b.onclick = () => {
+    const n = b.dataset.back;
+    if(!confirm('Take back "' + n + '"? Walks already made under it keep the name.')) return;
+    penSave(penDealt().filter(x => x !== n));
+    render();
+  });
+}
+function renderPenFilter(){
+  const sel = $('pen-filter'), keep = PEN_FILTER;
+  const names = new Set(penDealt());
+  const {real} = walks();
+  (real.length ? real : SAMPLE).forEach(w => { const n = nameOf(w); if(n) names.add(n); });
+  sel.innerHTML = '';
+  sel.add(new Option('Everyone', ''));
+  [...names].sort((a, b) => a.localeCompare(b)).forEach(n => sel.add(new Option(n, n)));
+  sel.add(new Option('No pen name', '-'));
+  sel.value = [...sel.options].some(o => o.value === keep) ? keep : '';
+  PEN_FILTER = sel.value;
+}
+$('pen-filter').onchange = e => { PEN_FILTER = e.target.value; renderResponses(); renderArtifacts(); };
+$('pen-deal').onclick = dealPenNames;
+$('pen-print').onclick = () => window.print();
+$('pen-clear').onclick = () => {
+  if(!confirm('Take back every pen name dealt to ' + CLASS + '? Walks already made keep their names.')) return;
+  penSave([]); render();
+};
+
+/* ---------------------------------------------------------------------------
+   go
+--------------------------------------------------------------------------- */
+function esc(v){
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function render(){
+  CATALOGUE = lsJSON(CAT_KEY, null);
+  PROMPTS = lsJSON(PROMPT_KEY, {});
+  const {real, sample} = walks();
+  const mine = Object.keys(PROMPTS).length;
+  $('class-counts').textContent =
+    (mine ? mine + (mine === 1 ? ' prompt of your own' : ' prompts of your own') : 'no prompts of your own yet') +
+    ' · ' + (sample ? 'no walks on this device yet' : real.length + (real.length === 1 ? ' walk' : ' walks'));
+  renderPenFilter();
+  renderPrompts();
+  renderResponses();
+  renderArtifacts();
+  renderPens();
+}
+
+/* a class already known on this device goes straight in — the field has to be
+   filled first, because enterClass() reads it rather than the variable */
+if(CLASS){ $('class-in').value = CLASS; enterClass(); } else { openDoor(); }
+</script>
+</body>
+</html>
