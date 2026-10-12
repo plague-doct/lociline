@@ -372,43 +372,6 @@
     </div>
   </section>
 
-  <!-- ---------- contact ---------- -->
-  <section id="contact">
-    <div class="wrap">
-      <h2 class="display">Tell me what you'd need</h2>
-      <div class="contact-grid">
-        <div>
-          <p class="sub" style="margin-bottom:22px;">This is a Media Design capstone at Victoria University
-            of Wellington, and it is still being built. If you teach this age group, or you're a parent with
-            a question about the AI side, I'd rather hear it now than after it ships.</p>
-          <form id="contact-form">
-            <label for="cf-name">Your name</label>
-            <input id="cf-name" name="name" type="text" autocomplete="name" required>
-            <label for="cf-role">You are</label>
-            <select id="cf-role" name="role">
-              <option>A teacher</option>
-              <option>A parent</option>
-              <option>A student</option>
-              <option>Someone else</option>
-            </select>
-            <label for="cf-msg">What would you want from this?</label>
-            <textarea id="cf-msg" name="message" required></textarea>
-            <button class="btn btn-primary" type="submit">Send it</button>
-            <p class="status" id="cf-status"></p>
-            <p class="form-note">Nothing here is connected to a server yet — this form is a placeholder
-              while the site is in build.</p>
-          </form>
-        </div>
-        <div class="card">
-          <h3>Where it's up to</h3>
-          <p>All three texts walk: Romeo and Juliet end to end, and the first chapters of Pride and
-            Prejudice and Lord of the Flies as single rooms. The practice wood that teaches the controls
-            is finished, and the teacher's side &mdash; writing your own prompts, reading what a class
-            wrote, seeing their artifacts &mdash; is working. Student logins and a class roll are next.</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
 </main>
 
@@ -587,13 +550,6 @@
     cls.addEventListener('keydown', e => { if(e.key === 'Enter'){ carry(); location.href = 'teacher.html'; } });
   })();
 
-  /* the form has nowhere to go yet, so it says so rather than pretending */
-  document.getElementById('contact-form').addEventListener('submit', function(e){
-    e.preventDefault();
-    const s = document.getElementById('cf-status');
-    s.textContent = 'Thanks — but nothing was sent. This form still needs wiring up to a mailbox.';
-    s.classList.add('on');
-  });
 </script>
 </body>
 </html>
