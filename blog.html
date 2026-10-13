@@ -167,17 +167,20 @@
   .status.on{display:block;background:var(--human-light);color:var(--human);}
 
   /* blog */
-  .posts{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
-  @media (max-width:860px){ .posts{grid-template-columns:1fr;} }
-  .post{background:var(--surface);border:1px solid var(--border);border-radius:14px;
-    padding:20px 22px 22px;display:flex;flex-direction:column;}
-  .post .when{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--human);margin:0 0 9px;}
-  .post h3{font-family:'Fraunces',serif;font-size:19px;font-weight:500;margin:0 0 8px;line-height:1.25;}
-  .post p{font-size:14.5px;color:var(--text-secondary);margin:0 0 14px;}
-  .post .more{font-size:13.5px;font-weight:600;text-decoration:none;margin-top:auto;}
-  .post.blank{border-style:dashed;background:transparent;}
-  .post.blank h3, .post.blank p{color:var(--text-secondary);opacity:.65;}
+  /* the journal: each entry is its slide(s), in order, with a contents row to jump about */
+  .contents{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 34px;}
+  .contents a{font-size:13px;font-weight:600;text-decoration:none;padding:6px 12px;border-radius:20px;
+    border:1.5px solid var(--border);background:#fff;color:var(--text-primary);}
+  .contents a:hover{border-color:var(--human);color:var(--human);}
+  .posts{display:flex;flex-direction:column;gap:44px;}
+  .post{scroll-margin-top:90px;}
+  .post .when{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--human);margin:0 0 6px;}
+  .post h3{font-family:'Fraunces',serif;font-size:24px;font-weight:500;margin:0 0 14px;line-height:1.2;}
+  .post .slides{display:flex;flex-direction:column;gap:14px;}
+  .post .slides a{display:block;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#ECE9E3;}
+  .post .slides img{display:block;width:100%;height:auto;aspect-ratio:16/9;}
+  .post .slides a:hover{border-color:var(--human);}
   .posts-note{font-size:13px;color:var(--text-secondary);margin:18px 0 0;}
 
   footer{border-top:1px solid var(--border);padding:34px 0 56px;font-size:13.5px;color:var(--text-secondary);}
@@ -215,8 +218,8 @@
     <div class="wrap">
       <h2 class="display">Blog</h2>
       <p class="sub">Notes from the build, as it goes.</p>
+      <nav class="contents" id="contents" aria-label="Blog contents"></nav>
       <div class="posts" id="posts"></div>
-      <p class="posts-note" id="posts-note"></p>
     </div>
   </section>
 
@@ -234,37 +237,57 @@
 
 <script>
   /* --------------------------------------------------------------------------
-     The blog. One entry per post, newest first. A post needs a date, a title and
-     a line or two; `href` is where it goes when there is somewhere to go. An
-     entry with no title draws an empty slot instead, so the row keeps its shape
-     while the writing is still to come.
+     The blog. One entry per post, in the order the project happened. Each
+     post is one or more slides from blog-images/; click a slide to open it
+     full size. To add a post, add an entry here and drop its image in that
+     folder.
   -------------------------------------------------------------------------- */
   const POSTS = [
-    {when:'', title:'', blurb:'', href:''},
-    {when:'', title:'', blurb:'', href:''},
-    {when:'', title:'', blurb:'', href:''},
+    {id:'start',     title:'Loci Line: an AI literacy tool, development blog', imgs:['1.png'],
+     alt:['Title slide: Loci Line, an AI literacy tool, development blog, with the green star mark.']},
+    {id:'summary',   title:'Summary', imgs:['2.png'],
+     alt:['Summary: concerns about students using AI to cheat, why AI ethics and media literacy matter, and the aim to build an educational website that creates an AI artifact from students’ input to set up class discussion.']},
+    {id:'goal',      title:'Project goal', imgs:['3.png'],
+     alt:['Project goal: a tool for the start of a lesson to reflect on class media, with an artifact made from students’ input; the final output is a 10 to 15 minute experience for ages 9 to 13 on a published website.']},
+    {id:'sketches',  title:'Initial sketches: experience map', imgs:['4.png'],
+     alt:['Experience map: from the landing page, the student path through login, onboarding, bookshelf, reading check, walk, puzzles and artifact; and the teacher path through dashboard, past work and assigning reading.']},
+    {id:'timeline',  title:'Timeline and milestones', imgs:['5.png'],
+     alt:['Timeline for weeks 7 to 12, with milestones: a tutorial room, a well presented artifact, and five completed puzzle rooms.']},
+    {id:'pre',       when:'Before week 7', title:'Pre-project', imgs:['6.png'],
+     alt:['Screenshots of the early prototype: a room with a statue and prompt, the first bookshelf, and the first subway-style artifact.']},
+    {id:'week-7',    when:'Week 7 · 31 Aug – 6 Sep', title:'Week 7', imgs:['7.png'],
+     alt:['Week 7: replacing the rail system with free walking, controls on screen and keyboard, and the liminal feel of the rooms; this week and next week lists.']},
+    {id:'week-8',    when:'Week 8 · 7 – 13 Sep', title:'Week 8', imgs:['8.png', '9.png'],
+     alt:['Week 8, part one: New York State banning AI for students, adding a minimap after in-person feedback, and reflecting on developing with Claude Code.',
+          'Week 8, part two: small tasks, thoughts on building without AI assistance, and this week’s list: homepage, tutorial room, artifact toggles, progress bar, map, footpaths, header, bookshelf and bug fixes.']},
+    {id:'week-9',    when:'Week 9 · 14 – 20 Sep', title:'Week 9', imgs:['10.png'],
+     alt:['Week 9: artifact refinement and Pride and Prejudice while working on another class; this week and next week lists.']},
+    {id:'week-10',   when:'Week 10 · 21 – 27 Sep', title:'Week 10', imgs:['11.png'],
+     alt:['Week 10: Lord of the Flies chapter 1, your own theme, the fog layer, teacher basics and tutorial touch ups; next week list.']},
+    {id:'week-11',   when:'Week 11 · 28 Sep – 4 Oct', title:'Week 11', imgs:['12.png'],
+     alt:['Week 11: cleaning up the homepage and removing AI stand-in writing, the new map system, fog, dev mode and pen names; next week list.']},
+    {id:'week-12',   when:'Week 12 · 5 – 11 Oct', title:'Week 12', imgs:['13.png'],
+     alt:['Week 12: the warping artifact that turns the path into a shape for the book, and the presentation; next week before submission.']},
+    {id:'publishing', when:'Publishing', title:'Publishing', imgs:['14.png'],
+     alt:['Screenshots of the published tool: the bookshelf with pen names, a room in the Globe, and the artifact views, alongside the earlier versions.']},
   ];
 
   (function(){
     const box = document.getElementById('posts');
-    const note = document.getElementById('posts-note');
+    const nav = document.getElementById('contents');
     if(!box) return;
-    const written = POSTS.filter(p => p.title && p.title.trim());
-    box.innerHTML = POSTS.map(p => p.title && p.title.trim() ? `
-      <article class="post">
-        ${p.when ? '<p class="when">' + p.when + '</p>' : ''}
-        <h3>${p.title}</h3>
-        <p>${p.blurb || ''}</p>
-        ${p.href ? '<a class="more" href="' + p.href + '">Read it &rarr;</a>' : ''}
-      </article>` : `
-      <article class="post blank">
-        <p class="when">next post</p>
-        <h3>&mdash;</h3>
-        <p>An empty slot, waiting for a write-up.</p>
+    const esc = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    nav.innerHTML = POSTS.map(p => '<a href="#' + p.id + '">' + esc(p.title.replace(/:.*$/, '')) + '</a>').join('');
+    box.innerHTML = POSTS.map((p, i) => `
+      <article class="post" id="${p.id}">
+        ${p.when ? '<p class="when">' + esc(p.when) + '</p>' : ''}
+        <h3>${esc(p.title)}</h3>
+        <div class="slides">${p.imgs.map((src, k) => `
+          <a href="blog-images/${src}" target="_blank" rel="noopener" title="Open full size">
+            <img src="blog-images/${src}" alt="${esc((p.alt || [])[k] || p.title)}" width="1920" height="1080"
+              ${i > 1 ? 'loading="lazy"' : ''} decoding="async"></a>`).join('')}
+        </div>
       </article>`).join('');
-    note.textContent = written.length
-      ? ''
-      : 'No posts yet. They go in the POSTS list at the top of this page\u2019s script.';
   })();
 
 </script>
